@@ -186,20 +186,40 @@ void main() {
     final ctrl = await pumpLesson(tester, spec34);
     addTearDown(ctrl.dispose);
 
-    // 6 choices rendered with curves OFF on buttons.
+    // 6 choices rendered with curves OFF on buttons and uniform button height.
     expect(find.text('1 · High Flat'), findsOneWidget);
     expect(find.text('6 · Low Flat'), findsOneWidget);
     expect(find.byType(PitchContourBox), findsNothing);
     expect(tester.takeException(), isNull);
 
+    final choiceHeights = [
+      for (final label in const [
+        '1 · High Flat',
+        '2 · High Rising',
+        '3 · Mid Flat',
+        '4 · Low Falling',
+        '5 · Low Rising',
+        '6 · Low Flat',
+      ])
+        tester.getSize(find.ancestor(of: find.text(label), matching: find.byType(Material)).first).height,
+    ];
+    expect(choiceHeights.toSet().length, 1);
+
     await tester.tap(find.text('1 · High Flat'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
 
-    // Feedback shows curve(s) and Next without overflow.
+    // Feedback shows curve(s), whole-card audio tap works, and Next has no overflow.
     expect(find.text('Next'), findsOneWidget);
     expect(find.byType(PitchContourBox), findsWidgets);
     expect(tester.takeException(), isNull);
+
+    final playsBeforeTap = audio.playedPaths.length;
+    await tester.ensureVisible(find.textContaining('Target · '));
+    await tester.tap(find.textContaining('Target · '));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pump();
+    expect(audio.playedPaths.length, greaterThan(playsBeforeTap));
   });
 
   testWidgets('Unit 7 u7_l1 renders None for locked open ending and u7_l4 uses FeedbackToneWheelPanel', (tester) async {

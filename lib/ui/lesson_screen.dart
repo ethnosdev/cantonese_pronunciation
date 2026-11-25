@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -600,34 +601,166 @@ class _ChoiceCardsTrial extends StatelessWidget {
             ),
           ]
         else
-          for (var r = 0; r < trial.choices.length; r += 2) ...[
-            if (r > 0) const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _ChoiceCardTile(
-                    option: trial.choices[r],
-                    showContour: trial.showContoursOnButtons,
-                    onTap: () => controller.submitChoice(trial.choices[r]),
-                  ),
+          _UniformTwoColumnGrid(
+            spacing: 8,
+            runSpacing: 8,
+            minTileHeight: 68,
+            children: [
+              for (final option in trial.choices)
+                _ChoiceCardTile(
+                  option: option,
+                  showContour: trial.showContoursOnButtons,
+                  isGridTile: true,
+                  onTap: () => controller.submitChoice(option),
                 ),
-                const SizedBox(width: 8),
-                if (r + 1 < trial.choices.length)
-                  Expanded(
-                    child: _ChoiceCardTile(
-                      option: trial.choices[r + 1],
-                      showContour: trial.showContoursOnButtons,
-                      onTap: () =>
-                          controller.submitChoice(trial.choices[r + 1]),
-                    ),
-                  )
-                else
-                  const Expanded(child: SizedBox.shrink()),
-              ],
-            ),
-          ],
+            ],
+          ),
       ],
     );
+  }
+}
+
+class _UniformTwoColumnGrid extends MultiChildRenderObjectWidget {
+  const _UniformTwoColumnGrid({
+    required this.spacing,
+    required this.runSpacing,
+    required this.minTileHeight,
+    required super.children,
+  });
+
+  final double spacing;
+  final double runSpacing;
+  final double minTileHeight;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderUniformTwoColumnGrid(spacing, runSpacing, minTileHeight);
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant _RenderUniformTwoColumnGrid renderObject,
+  ) {
+    renderObject
+      ..spacing = spacing
+      ..runSpacing = runSpacing
+      ..minTileHeight = minTileHeight;
+  }
+}
+
+class _UniformGridParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderUniformTwoColumnGrid extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _UniformGridParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _UniformGridParentData> {
+  _RenderUniformTwoColumnGrid(
+    this._spacing,
+    this._runSpacing,
+    this._minTileHeight,
+  );
+
+  double _spacing;
+  double get spacing => _spacing;
+  set spacing(double value) {
+    if (_spacing == value) return;
+    _spacing = value;
+    markNeedsLayout();
+  }
+
+  double _runSpacing;
+  double get runSpacing => _runSpacing;
+  set runSpacing(double value) {
+    if (_runSpacing == value) return;
+    _runSpacing = value;
+    markNeedsLayout();
+  }
+
+  double _minTileHeight;
+  double get minTileHeight => _minTileHeight;
+  set minTileHeight(double value) {
+    if (_minTileHeight == value) return;
+    _minTileHeight = value;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _UniformGridParentData) {
+      child.parentData = _UniformGridParentData();
+    }
+  }
+
+  double _tileWidthFor(double maxWidth) =>
+      math.max(0.0, (maxWidth - _spacing) / 2.0);
+
+  double _uniformHeightFor(double tileWidth) {
+    var maxH = _minTileHeight;
+    var child = firstChild;
+    while (child != null) {
+      final h = child.getMaxIntrinsicHeight(tileWidth);
+      if (h > maxH) maxH = h;
+      child = childAfter(child);
+    }
+    return maxH;
+  }
+
+  double _totalHeightForWidth(double width) {
+    if (childCount == 0) return 0.0;
+    final rows = (childCount + 1) ~/ 2;
+    final tileHeight = _uniformHeightFor(_tileWidthFor(width));
+    return rows * tileHeight + (rows - 1) * _runSpacing;
+  }
+
+  @override
+  double computeMinIntrinsicHeight(double width) => _totalHeightForWidth(width);
+
+  @override
+  double computeMaxIntrinsicHeight(double width) => _totalHeightForWidth(width);
+
+  @override
+  void performLayout() {
+    if (childCount == 0) {
+      size = constraints.constrain(Size(constraints.maxWidth, 0.0));
+      return;
+    }
+    final width = constraints.maxWidth;
+    final tileWidth = _tileWidthFor(width);
+    final tileHeight = _uniformHeightFor(tileWidth);
+    final childConstraints = BoxConstraints.tightFor(
+      width: tileWidth,
+      height: tileHeight,
+    );
+
+    var index = 0;
+    var child = firstChild;
+    while (child != null) {
+      child.layout(childConstraints, parentUsesSize: true);
+      final pd = child.parentData! as _UniformGridParentData;
+      final col = index % 2;
+      final row = index ~/ 2;
+      pd.offset = Offset(
+        col * (tileWidth + _spacing),
+        row * (tileHeight + _runSpacing),
+      );
+      index++;
+      child = childAfter(child);
+    }
+
+    final rows = (childCount + 1) ~/ 2;
+    final totalHeight = rows * tileHeight + (rows - 1) * _runSpacing;
+    size = constraints.constrain(Size(width, totalHeight));
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    defaultPaint(context, offset);
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    return defaultHitTestChildren(result, position: position);
   }
 }
 
@@ -635,16 +768,22 @@ class _ChoiceCardTile extends StatelessWidget {
   const _ChoiceCardTile({
     required this.option,
     required this.showContour,
+    this.isGridTile = false,
     required this.onTap,
   });
 
   final ChoiceOption option;
   final bool showContour;
+  final bool isGridTile;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final scale = MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 2.0);
+    final minHeight = isGridTile ? 72.0 * scale : 56.0;
+    final stackContour = isGridTile && showContour && option.tone != null;
+
     return Material(
       color: scheme.surface,
       borderRadius: BorderRadius.circular(12),
@@ -652,18 +791,16 @@ class _ChoiceCardTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 56),
+          constraints: BoxConstraints(minHeight: minHeight),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
               border: Border.all(color: scheme.outlineVariant, width: 1.3),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Flexible(
-                  child: Column(
+            child: stackContour
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
@@ -673,28 +810,51 @@ class _ChoiceCardTile extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (option.subtitle != null &&
-                          option.subtitle!.isNotEmpty)
-                        Text(
-                          option.subtitle!,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
+                      const SizedBox(height: 6),
+                      PitchContourBox(
+                        tone: option.tone!,
+                        isCheckedTone: option.isCheckedTone,
+                        width: 44,
+                        height: 20,
+                      ),
+                    ],
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              option.label,
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            if (option.subtitle != null &&
+                                option.subtitle!.isNotEmpty)
+                              Text(
+                                option.subtitle!,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: scheme.onSurfaceVariant),
+                              ),
+                          ],
                         ),
+                      ),
+                      if (showContour && option.tone != null) ...[
+                        const SizedBox(width: 10),
+                        PitchContourBox(
+                          tone: option.tone!,
+                          isCheckedTone: option.isCheckedTone,
+                          width: 38,
+                          height: 22,
+                        ),
+                      ],
                     ],
                   ),
-                ),
-                if (showContour && option.tone != null) ...[
-                  const SizedBox(width: 10),
-                  PitchContourBox(
-                    tone: option.tone!,
-                    isCheckedTone: option.isCheckedTone,
-                    width: 38,
-                    height: 22,
-                  ),
-                ],
-              ],
-            ),
           ),
         ),
       ),
@@ -1068,55 +1228,64 @@ class _ComparisonRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: isCorrectHighlight
-            ? scheme.primaryContainer.withValues(alpha: 0.35)
-            : scheme.errorContainer.withValues(alpha: 0.35),
-        border: Border.all(
-          color: isCorrectHighlight ? scheme.primary : scheme.error,
-        ),
+    final bgColor = isCorrectHighlight
+        ? scheme.primaryContainer.withValues(alpha: 0.35)
+        : scheme.errorContainer.withValues(alpha: 0.35);
+    final borderColor = isCorrectHighlight ? scheme.primary : scheme.error;
+
+    return Semantics(
+      button: onPlay != null,
+      label: onPlay != null ? 'Play $roleLabel' : null,
+      child: Material(
+        color: bgColor,
         borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: InkWell(
+          onTap: onPlay,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              border: Border.all(color: borderColor),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
               children: [
-                Text(
-                  '$roleLabel · $syllable',
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$roleLabel · $syllable',
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                      Text(
+                        detailLabel,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  detailLabel,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                if (showContour && tone != null) ...[
+                  const SizedBox(width: 8),
+                  PitchContourBox(
+                    tone: tone!,
+                    isCheckedTone: isCheckedTone,
+                    color: borderColor,
+                    width: 44,
+                    height: 24,
                   ),
-                ),
+                ],
+                if (onPlay != null) ...[
+                  const SizedBox(width: 10),
+                  Icon(Icons.volume_up, color: borderColor),
+                ],
               ],
             ),
           ),
-          if (showContour && tone != null) ...[
-            const SizedBox(width: 8),
-            PitchContourBox(
-              tone: tone!,
-              isCheckedTone: isCheckedTone,
-              color: isCorrectHighlight ? scheme.primary : scheme.error,
-              width: 44,
-              height: 24,
-            ),
-          ],
-          if (onPlay != null)
-            IconButton(
-              tooltip: 'Play $roleLabel',
-              onPressed: onPlay,
-              icon: const Icon(Icons.volume_up),
-            ),
-        ],
+        ),
       ),
     );
   }
