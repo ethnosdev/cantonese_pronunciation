@@ -131,7 +131,14 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
     await tester.pumpAndSettle();
 
-    expect(find.text('Cantonese Path'), findsOneWidget);
+    expect(find.text('Cantonese Pronunciation'), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.text('Cantonese Pronunciation'),
+        matching: find.byType(FittedBox),
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('Daily Review (2 due)'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.textContaining('1.1  High Flat (1) vs. Low Falling (4)'),
@@ -162,6 +169,6 @@ void main() {
     // Pop back to Home -> drawer was already closed cleanly.
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Cantonese Path'), findsOneWidget);
+    expect(find.text('Cantonese Pronunciation'), findsOneWidget);
   });
 }

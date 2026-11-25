@@ -36,7 +36,13 @@ class LearningPathHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Cantonese Path')),
+      appBar: AppBar(
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text('Cantonese Pronunciation', maxLines: 1),
+        ),
+      ),
       drawer: Drawer(
         child: SafeArea(
           child: ListenableBuilder(
@@ -56,7 +62,7 @@ class LearningPathHomeScreen extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Cantonese Ear Training',
+                          'Cantonese Pronunciation',
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),

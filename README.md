@@ -1,4 +1,4 @@
-# Cantonese Pronunciation Practice
+# Cantonese Pronunciation
 
 Cross-platform Flutter pronunciation app for Cantonese Jyutping supporting Android, iOS, and macOS.
 
