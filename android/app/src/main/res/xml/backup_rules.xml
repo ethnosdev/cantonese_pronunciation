@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="file" path="audio_bundle" />
+    <exclude domain="file" path="audio_staging" />
+    <exclude domain="file" path="audio_bundle_old" />
+    <exclude domain="database" path="cantonese_pronunciation.db" />
+</full-backup-content>

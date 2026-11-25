@@ -1,0 +1,9 @@
+CC0 1.0 Universal (Public Domain Dedication)
+
+To the extent possible under law, the authors waive all copyright and related
+or neighboring rights to the first-party source code in this repository.
+
+Full legal terms: https://creativecommons.org/publicdomain/zero/1.0/
+
+Third-party packages (listed in pubspec.yaml) and the separately downloaded
+Cantonese syllable audio bundle (CC BY-SA 4.0) remain under their own licenses.
