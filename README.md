@@ -5,7 +5,7 @@ Cross-platform Flutter pronunciation app for Cantonese Jyutping supporting Andro
 ## Licensing Split
 
 - **First-party app source code:** CC0 1.0 Universal (`LICENSE`).
-- **Audio & syllable index bundle:** Licensed under CC BY-SA 4.0 by 「粵音資料集叢」 (`https://jyut.net/`) and downloaded separately at runtime from Cloudflare R2 (`../jyutnet-audio-bundle/`).
+- **Audio & syllable index bundle:** Licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) by [「粵音資料集叢」](https://jyut.net/) (source recordings: <https://github.com/jyutnet/jyutnet-cantonese-syllables>) and downloaded separately at runtime from <https://cantonese.ethnos.dev/kt_audio_opus_v1.zip>.
 
 ## Build Configuration
 
