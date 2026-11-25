@@ -2,12 +2,14 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../core/jyutping_constants.dart';
 import '../../core/syllable_models.dart';
+import 'pitch_contour_painter.dart';
 
 /// Post-submit grading summary, Target/Guess playback, and 1-6 Tone Wheel.
 class FeedbackToneWheelPanel extends StatelessWidget {
   const FeedbackToneWheelPanel({
     super.key,
     required this.result,
+    this.useBeginnerLabels = false,
     required this.onPlayTarget,
     required this.onPlayGuess,
     required this.onPlayToneEntry,
@@ -15,6 +17,7 @@ class FeedbackToneWheelPanel extends StatelessWidget {
   });
 
   final GradingResult result;
+  final bool useBeginnerLabels;
   final VoidCallback onPlayTarget;
   final VoidCallback onPlayGuess;
   final void Function(SyllableEntry entry) onPlayToneEntry;
@@ -24,6 +27,7 @@ class FeedbackToneWheelPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final toneByNumber = {for (final e in result.toneFamily) e.tone: e};
+    final isChecked = const {'p', 't', 'k'}.contains(result.target.coda);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -36,10 +40,8 @@ class FeedbackToneWheelPanel extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  result.isAllCorrect ? Icons.check_circle : Icons.info_outline,
-                  color: result.isAllCorrect
-                      ? Colors.green.shade700
-                      : scheme.error,
+                  result.isAllCorrect ? Icons.check_circle : Icons.cancel,
+                  color: result.isAllCorrect ? scheme.primary : scheme.error,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -61,7 +63,10 @@ class FeedbackToneWheelPanel extends StatelessWidget {
               runSpacing: 4,
               children: [
                 for (final comp in ComponentType.values)
-                  _ComponentBadge(grade: result.grades[comp]!),
+                  _ComponentBadge(
+                    grade: result.grades[comp]!,
+                    useBeginnerLabels: useBeginnerLabels,
+                  ),
               ],
             ),
             const SizedBox(height: 10),
@@ -71,7 +76,25 @@ class FeedbackToneWheelPanel extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onPlayTarget,
                     icon: const Icon(Icons.volume_up, size: 18),
-                    label: Text('Target (${result.target.syllable})'),
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Target (${result.target.syllable})',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        PitchContourBox(
+                          tone: result.target.tone,
+                          isCheckedTone: isChecked,
+                          width: 28,
+                          height: 16,
+                          showGuides: false,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -79,7 +102,30 @@ class FeedbackToneWheelPanel extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: result.isGuessPlayable ? onPlayGuess : null,
                     icon: const Icon(Icons.hearing, size: 18),
-                    label: Text('Guess (${result.guessedKey.syllable})'),
+                    label: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Guess (${result.guessedKey.syllable})',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        PitchContourBox(
+                          tone: result.guessedKey.tone,
+                          isCheckedTone: const {
+                            'p',
+                            't',
+                            'k',
+                          }.contains(result.guessedKey.coda),
+                          width: 28,
+                          height: 16,
+                          color: scheme.secondary,
+                          showGuides: false,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -124,10 +170,22 @@ class FeedbackToneWheelPanel extends StatelessWidget {
                             '$t',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          Text(
-                            JyutpingConstants.tonePitchLabels[t]!,
-                            style: const TextStyle(fontSize: 10),
-                          ),
+                          if (useBeginnerLabels)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: PitchContourBox(
+                                tone: t,
+                                isCheckedTone: isChecked,
+                                width: 28,
+                                height: 14,
+                                showGuides: false,
+                              ),
+                            )
+                          else
+                            Text(
+                              JyutpingConstants.tonePitchLabels[t]!,
+                              style: const TextStyle(fontSize: 10),
+                            ),
                         ],
                       ),
                     ),
@@ -151,25 +209,34 @@ class FeedbackToneWheelPanel extends StatelessWidget {
 }
 
 class _ComponentBadge extends StatelessWidget {
-  const _ComponentBadge({required this.grade});
+  const _ComponentBadge({
+    required this.grade,
+    required this.useBeginnerLabels,
+  });
 
   final ComponentGrade grade;
+  final bool useBeginnerLabels;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final ok = grade.isCorrect;
-    final exp = grade.expected.isEmpty ? '∅' : grade.expected;
-    final guess = grade.guessed.isEmpty ? '∅' : grade.guessed;
+    final emptyLabel = useBeginnerLabels ? 'None' : '∅';
+    final exp = grade.expected.isEmpty ? emptyLabel : grade.expected;
+    final guess = grade.guessed.isEmpty ? emptyLabel : grade.guessed;
+    final compLabel = grade.component.displayLabel(
+      useBeginnerLabels: useBeginnerLabels,
+    );
     final text = ok
-        ? '${grade.component.label}: $exp ✓'
-        : '${grade.component.label}: $guess → $exp';
+        ? '$compLabel: $exp ✓'
+        : '$compLabel: $guess → $exp ✗';
     return Chip(
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
       label: Text(text, style: const TextStyle(fontSize: 11)),
       backgroundColor: ok
-          ? Colors.green.withValues(alpha: 0.14)
-          : Theme.of(context).colorScheme.errorContainer,
+          ? scheme.primaryContainer.withValues(alpha: 0.6)
+          : scheme.errorContainer,
     );
   }
 }

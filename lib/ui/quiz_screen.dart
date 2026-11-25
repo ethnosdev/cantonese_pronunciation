@@ -9,35 +9,36 @@ import 'widgets/answer_slots_bar.dart';
 import 'widgets/feedback_tone_wheel_panel.dart';
 import 'widgets/jyutping_keyboard.dart';
 
-/// Phone-first primary quiz screen fitting narrow screens without scrolling.
+/// Discrete 42-Key Sandbox quiz screen opened from the Home Drawer.
 class QuizScreen extends StatelessWidget {
   const QuizScreen({
     super.key,
     required this.controller,
-    required this.onOpenSoundboard,
-    required this.onOpenStats,
-    required this.onOpenSettings,
   });
 
   final QuizController controller;
-  final VoidCallback onOpenSoundboard;
-  final VoidCallback onOpenStats;
-  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
+    final isCurrent = ModalRoute.of(context)?.isCurrent ?? true;
+    final shortcuts = isCurrent
+        ? <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.space):
+                controller.playTarget,
+            const SingleActivator(LogicalKeyboardKey.enter):
+                controller.handleEnterKey,
+            const SingleActivator(LogicalKeyboardKey.numpadEnter):
+                controller.handleEnterKey,
+            const SingleActivator(LogicalKeyboardKey.escape): controller.clearAll,
+          }
+        : const <ShortcutActivator, VoidCallback>{};
+
     return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.space): controller.playTarget,
-        const SingleActivator(LogicalKeyboardKey.enter):
-            controller.handleEnterKey,
-        const SingleActivator(LogicalKeyboardKey.numpadEnter):
-            controller.handleEnterKey,
-        const SingleActivator(LogicalKeyboardKey.escape): controller.clearAll,
-      },
+      bindings: shortcuts,
       child: Focus(
         autofocus: true,
         child: Scaffold(
+          appBar: AppBar(title: const Text('42-Key Sandbox')),
           body: SafeArea(
             child: Center(
               child: ConstrainedBox(
@@ -59,13 +60,8 @@ class QuizScreen extends StatelessWidget {
                             context,
                           ).scale(1.0);
                           final needsScroll =
-                              scale > 1.05 || constraints.maxHeight < 550;
-                          final content = _QuizBody(
-                            controller: controller,
-                            onOpenSoundboard: onOpenSoundboard,
-                            onOpenStats: onOpenStats,
-                            onOpenSettings: onOpenSettings,
-                          );
+                              scale > 1.05 || constraints.maxHeight < 620;
+                          final content = _QuizBody(controller: controller);
                           if (needsScroll) {
                             return SingleChildScrollView(child: content);
                           }
@@ -85,17 +81,9 @@ class QuizScreen extends StatelessWidget {
 }
 
 class _QuizBody extends StatelessWidget {
-  const _QuizBody({
-    required this.controller,
-    required this.onOpenSoundboard,
-    required this.onOpenStats,
-    required this.onOpenSettings,
-  });
+  const _QuizBody({required this.controller});
 
   final QuizController controller;
-  final VoidCallback onOpenSoundboard;
-  final VoidCallback onOpenStats;
-  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -110,9 +98,6 @@ class _QuizBody extends StatelessWidget {
               controller.updateSettings(settings.copyWith(tier: tier)),
           onFilterChanged: (filter) =>
               controller.updateSettings(settings.copyWith(focusFilter: filter)),
-          onOpenSoundboard: onOpenSoundboard,
-          onOpenStats: onOpenStats,
-          onOpenSettings: onOpenSettings,
         ),
         const SizedBox(height: 4),
         _AudioControlStrip(
@@ -183,17 +168,11 @@ class _TopBar extends StatelessWidget {
     required this.settings,
     required this.onTierChanged,
     required this.onFilterChanged,
-    required this.onOpenSoundboard,
-    required this.onOpenStats,
-    required this.onOpenSettings,
   });
 
   final AppSettings settings;
   final void Function(DatasetTier) onTierChanged;
   final void Function(FocusFilter) onFilterChanged;
-  final VoidCallback onOpenSoundboard;
-  final VoidCallback onOpenStats;
-  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -245,24 +224,6 @@ class _TopBar extends StatelessWidget {
               label: settings.focusFilter.label,
             ),
           ),
-        ),
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          tooltip: 'Soundboard',
-          onPressed: onOpenSoundboard,
-          icon: const Icon(Icons.grid_view_rounded, size: 20),
-        ),
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          tooltip: 'Stats',
-          onPressed: onOpenStats,
-          icon: const Icon(Icons.bar_chart_rounded, size: 20),
-        ),
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          tooltip: 'Settings & Credits',
-          onPressed: onOpenSettings,
-          icon: const Icon(Icons.settings_outlined, size: 20),
         ),
       ],
     );

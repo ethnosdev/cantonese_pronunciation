@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:cantonese_pronunciation/core/curriculum.dart';
+import 'package:cantonese_pronunciation/core/lesson_spec.dart';
 import 'package:cantonese_pronunciation/core/syllable_models.dart';
 import 'package:cantonese_pronunciation/data/audio_bundle_repository.dart';
 import 'package:cantonese_pronunciation/data/database_helper.dart';
+import 'package:cantonese_pronunciation/data/progress_repository.dart';
 import 'package:cantonese_pronunciation/data/stats_repository.dart';
 import 'package:cantonese_pronunciation/data/syllable_repository.dart';
 import 'package:cantonese_pronunciation/state/bundle_controller.dart';
@@ -12,6 +15,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -255,5 +259,45 @@ void main() {
     await repo.installOrRepair(onProgress: (_, _) {});
     expect(await repo.isBundleReady(), isTrue);
     expect(await syllableRepo.countSyllables(), 5358);
+  });
+
+  test('schema v1 creates progress/review tables and isolates ThemeMode from AppSettings', () async {
+    final fixedNow = DateTime.utc(2026, 11, 25, 12);
+    final progressRepo = ProgressRepository(dbHelper, clock: () => fixedNow);
+
+    await progressRepo.ensureLesson1Unlocked();
+    final progress = await progressRepo.loadAllLessonProgress();
+    expect(progress['u1_l1_high_vs_low']?.status, LessonStatus.unlocked);
+    expect(progress['u1_l1_high_vs_low']?.updatedAt, fixedNow);
+
+    // Save dark theme, then save Sandbox AppSettings without clobbering theme.
+    await statsRepo.saveThemeMode(ThemeMode.dark);
+    await statsRepo.saveSettings(
+      const AppSettings(
+        tier: DatasetTier.pri0And1,
+        constraintMode: ConstraintMode.guided,
+        focusFilter: TonesOnlyFilter(),
+        autoPlay: false,
+      ),
+    );
+    expect(await statsRepo.loadThemeMode(), ThemeMode.dark);
+    expect(await statsRepo.loadAutoPlay(), isFalse);
+
+    // Reset clears review items and re-unlocks Lesson 1.1 cleanly.
+    await progressRepo.completeLessonAttempt(
+      lessonId: 'u1_l1_high_vs_low',
+      accuracy: 1.0,
+      passed: true,
+      nextLessonId: 'u1_l2_rising_2',
+      skillsToSeed: Curriculum.lessonById('u1_l1_high_vs_low')!.seedSkills,
+      completedAt: fixedNow,
+    );
+    expect(await progressRepo.countCompletedLessons(), 1);
+    await progressRepo.resetLearningProgress(fixedNow.add(const Duration(hours: 1)));
+    expect(await progressRepo.countCompletedLessons(), 0);
+    expect(
+      (await progressRepo.loadAllLessonProgress())['u1_l1_high_vs_low']?.status,
+      LessonStatus.unlocked,
+    );
   });
 }

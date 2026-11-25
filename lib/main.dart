@@ -1,8 +1,19 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'app.dart';
+import 'data/database_helper.dart';
+import 'data/stats_repository.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const CantonesePronunciationApp());
+  final dbHelper = DatabaseHelper();
+  ThemeMode initialThemeMode = ThemeMode.system;
+  try {
+    initialThemeMode = await StatsRepository(dbHelper).loadThemeMode();
+  } catch (_) {
+    initialThemeMode = ThemeMode.system;
+  } finally {
+    await dbHelper.close();
+  }
+  runApp(CantonesePronunciationApp(initialThemeMode: initialThemeMode));
 }

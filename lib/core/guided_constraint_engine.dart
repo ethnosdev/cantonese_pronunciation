@@ -63,9 +63,13 @@ class GuidedConstraintEngine {
     return result;
   }
 
-  /// Allowed tones; Tones Only keeps all 6 tones enabled to prevent leaking.
-  Set<int> allowedTones(DraftInputState draft, FocusFilter filter) {
-    if (filter is TonesOnlyFilter) {
+  /// Allowed tones; keeps all 6 tones enabled when [preventToneLeaking] is set.
+  Set<int> allowedTones(
+    DraftInputState draft,
+    FocusFilter filter, {
+    bool preventToneLeaking = false,
+  }) {
+    if (preventToneLeaking || filter is TonesOnlyFilter) {
       return {1, 2, 3, 4, 5, 6};
     }
     final result = <int>{};
@@ -90,10 +94,14 @@ class GuidedConstraintEngine {
   }
 
   /// Returns true when draft is structurally valid and exists in the active pool.
-  bool canSubmit(DraftInputState draft, FocusFilter filter) {
+  bool canSubmit(
+    DraftInputState draft,
+    FocusFilter filter, {
+    bool preventToneLeaking = false,
+  }) {
     if (!draft.canSubmit) return false;
     final normalized = draft.normalizeForSubmission();
-    if (filter is TonesOnlyFilter) {
+    if (preventToneLeaking || filter is TonesOnlyFilter) {
       return pool.any(
         (e) =>
             e.initial == normalized.initial &&

@@ -12,7 +12,7 @@ class SoundboardScreen extends StatefulWidget {
     required this.syllableRepository,
     required this.bundleRepository,
     required this.audioService,
-    required this.initialTier,
+    this.initialTier = DatasetTier.pri0,
   });
 
   final SyllableRepository syllableRepository;
@@ -56,10 +56,17 @@ class _SoundboardScreenState extends State<SoundboardScreen> {
   }
 
   Future<void> _play(SyllableEntry entry) async {
-    final fullPath = await widget.bundleRepository.resolveAudioFilePath(
-      entry.path,
-    );
-    await widget.audioService.playFile(fullPath);
+    try {
+      final fullPath = await widget.bundleRepository.resolveAudioFilePath(
+        entry.path,
+      );
+      await widget.audioService.playFile(fullPath);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not play ${entry.syllable}.')),
+      );
+    }
   }
 
   @override

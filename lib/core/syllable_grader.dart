@@ -8,6 +8,7 @@ class SyllableGrader {
     required SyllableEntry target,
     required DraftInputState draft,
     required FocusFilter filter,
+    List<ComponentType>? statsComponents,
     required SyllableEntry? Function(SyllableKey key) lookupEntry,
     required List<SyllableEntry> Function(
       String initial,
@@ -46,10 +47,12 @@ class SyllableGrader {
       ),
     };
 
-    // Exclude pre-filled slots from stats during Tones Only drills.
-    final statsComponents = filter is TonesOnlyFilter
-        ? const [ComponentType.tone]
-        : ComponentType.values;
+    // Exclude pre-filled slots from stats during Tones Only or partial-slot drills.
+    final resolvedStatsComponents =
+        statsComponents ??
+        (filter is TonesOnlyFilter
+            ? const [ComponentType.tone]
+            : ComponentType.values);
 
     final guessedEntry = lookupEntry(guessedKey);
     final toneFamily = lookupToneFamily(
@@ -63,7 +66,7 @@ class SyllableGrader {
       guessedKey: guessedKey,
       guessedEntry: guessedEntry,
       grades: grades,
-      statsComponents: statsComponents,
+      statsComponents: resolvedStatsComponents,
       autoNormalizedSyllabicNasal: autoNormalized,
       toneFamily: toneFamily,
     );

@@ -50,14 +50,18 @@ enum ConstraintMode {
 
 /// The four phonological slots of a Jyutping syllable.
 enum ComponentType {
-  initial('Initial'),
-  nucleus('Nucleus'),
-  coda('Coda'),
-  tone('Tone');
+  initial('Initial', 'Start'),
+  nucleus('Nucleus', 'Vowel'),
+  coda('Coda', 'Ending'),
+  tone('Tone', 'Tone');
 
-  const ComponentType(this.label);
+  const ComponentType(this.label, this.beginnerLabel);
 
   final String label;
+  final String beginnerLabel;
+
+  String displayLabel({bool useBeginnerLabels = false}) =>
+      useBeginnerLabels ? beginnerLabel : label;
 
   static ComponentType fromName(String name) {
     return ComponentType.values.firstWhere((e) => e.name == name);
@@ -250,6 +254,8 @@ class SyllableEntry {
     coda: coda,
     tone: tone,
   );
+
+  String get base => '$initial$nucleus$coda';
 
   Map<String, Object?> toDbRow() => {
     'syllable': syllable,

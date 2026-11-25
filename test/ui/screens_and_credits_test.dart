@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:cantonese_pronunciation/core/syllable_models.dart';
 import 'package:cantonese_pronunciation/data/audio_bundle_repository.dart';
 import 'package:cantonese_pronunciation/data/database_helper.dart';
+import 'package:cantonese_pronunciation/data/progress_repository.dart';
 import 'package:cantonese_pronunciation/data/stats_repository.dart';
 import 'package:cantonese_pronunciation/data/syllable_repository.dart';
 import 'package:cantonese_pronunciation/state/bundle_controller.dart';
+import 'package:cantonese_pronunciation/ui/about_credits_screen.dart';
+import 'package:cantonese_pronunciation/ui/app_settings_screen.dart';
 import 'package:cantonese_pronunciation/ui/bundle_setup_screen.dart';
-import 'package:cantonese_pronunciation/ui/settings_credits_screen.dart';
 import 'package:cantonese_pronunciation/ui/soundboard_screen.dart';
 import 'package:cantonese_pronunciation/ui/stats_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -77,7 +79,7 @@ void main() {
     expect(find.text('Retry Download (~19.2 MB)'), findsOneWidget);
   });
 
-  testWidgets('SettingsCreditsScreen renders attribution and opens external links', (tester) async {
+  testWidgets('AboutCreditsScreen renders attribution and opens external links', (tester) async {
     final bundleRepo = AudioBundleRepository(
       syllableRepository: syllableRepo,
       databaseHelper: dbHelper,
@@ -90,9 +92,8 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: SettingsCreditsScreen(
+        home: AboutCreditsScreen(
           bundleController: controller,
-          quizController: null,
           launchUrlFn: (uri) async {
             launchedUrls.add(uri.toString());
             return true;
@@ -111,6 +112,50 @@ void main() {
     await tester.tap(find.text('jyut.net'));
     await tester.pump();
     expect(launchedUrls, contains('https://jyut.net/'));
+  });
+
+  testWidgets('AppSettingsScreen persists ThemeMode, Auto-play, and resets progress', (tester) async {
+    final bundleRepo = AudioBundleRepository(
+      syllableRepository: syllableRepo,
+      databaseHelper: dbHelper,
+      httpClient: MockClient((_) async => http.Response('', 500)),
+      supportDirProvider: () async => tempDir,
+      tempDirProvider: () async => tempDir,
+    );
+    final bundleController = BundleController(bundleRepo);
+    final progressRepo = ProgressRepository(dbHelper);
+    await tester.runAsync(() => progressRepo.ensureLesson1Unlocked());
+    final themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
+    var resetCalled = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AppSettingsScreen(
+          statsRepository: statsRepo,
+          themeNotifier: themeNotifier,
+          bundleController: bundleController,
+          progressRepository: progressRepo,
+          onProgressReset: () => resetCalled = true,
+        ),
+      ),
+    );
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Dark'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pumpAndSettle();
+
+    expect(themeNotifier.value, ThemeMode.dark);
+    final savedTheme = await tester.runAsync(() => statsRepo.loadThemeMode());
+    expect(savedTheme, ThemeMode.dark);
+
+    await tester.tap(find.text('Reset Learning Progress'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reset'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pumpAndSettle();
+    expect(resetCalled, isTrue);
   });
 
   testWidgets('SoundboardScreen plays syllables and StatsScreen resets counts', (tester) async {

@@ -19,6 +19,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 class FakeAudioPlaybackService implements AudioPlaybackService {
   final List<String> playedPaths = [];
   int clearTurnCalls = 0;
+  int stopCalls = 0;
 
   @override
   void Function(String path, Object error)? onPlaybackError;
@@ -32,7 +33,22 @@ class FakeAudioPlaybackService implements AudioPlaybackService {
   }
 
   @override
-  Future<void> stop() async {}
+  Future<void> playSequence(
+    List<String> paths, {
+    Duration initialDelay = Duration.zero,
+    Duration gap = const Duration(milliseconds: 450),
+    void Function(int index)? onClipStart,
+  }) async {
+    for (var i = 0; i < paths.length; i++) {
+      onClipStart?.call(i);
+      playedPaths.add(paths[i]);
+    }
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCalls++;
+  }
 
   @override
   Future<void> clearTurnSources() async {
@@ -137,12 +153,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: QuizScreen(
-          controller: controller,
-          onOpenSoundboard: () {},
-          onOpenStats: () {},
-          onOpenSettings: () {},
-        ),
+        home: QuizScreen(controller: controller),
       ),
     );
     await tester.pumpAndSettle();

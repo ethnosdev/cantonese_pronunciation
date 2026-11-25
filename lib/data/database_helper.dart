@@ -89,6 +89,33 @@ class DatabaseHelper {
         value TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE lesson_progress (
+        lesson_id TEXT PRIMARY KEY,
+        status TEXT NOT NULL,
+        best_accuracy REAL NOT NULL DEFAULT 0.0,
+        attempts_count INTEGER NOT NULL DEFAULT 0,
+        last_completed_at INTEGER,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE review_items (
+        skill_id TEXT PRIMARY KEY,
+        lesson_id TEXT NOT NULL,
+        target_type TEXT NOT NULL,
+        target_value TEXT NOT NULL,
+        interval_stage INTEGER NOT NULL DEFAULT 0,
+        due_at INTEGER NOT NULL,
+        lapses INTEGER NOT NULL DEFAULT 0,
+        last_reviewed_at INTEGER NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX idx_review_items_due ON review_items (due_at)',
+    );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {

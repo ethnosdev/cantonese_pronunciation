@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/curriculum.dart';
 import '../../core/jyutping_constants.dart';
 import '../../core/syllable_models.dart';
 
@@ -9,7 +10,9 @@ class JyutpingKeyboard extends StatelessWidget {
     super.key,
     required this.draft,
     required this.isGuided,
-    required this.isTonesOnlyLocked,
+    this.isTonesOnlyLocked = false,
+    this.useBeginnerLabels = false,
+    this.visibleComponents,
     required this.allowedInitials,
     required this.allowedNuclei,
     required this.allowedCodas,
@@ -25,6 +28,8 @@ class JyutpingKeyboard extends StatelessWidget {
   final DraftInputState draft;
   final bool isGuided;
   final bool isTonesOnlyLocked;
+  final bool useBeginnerLabels;
+  final Set<ComponentType>? visibleComponents;
   final Set<String> allowedInitials;
   final Set<String> allowedNuclei;
   final Set<String> allowedCodas;
@@ -36,6 +41,9 @@ class JyutpingKeyboard extends StatelessWidget {
   final void Function(int) onToggleTone;
   final VoidCallback onSubmit;
 
+  bool _isVisible(ComponentType comp) =>
+      visibleComponents == null || visibleComponents!.contains(comp);
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -43,116 +51,133 @@ class JyutpingKeyboard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _BandContainer(
-          title: 'Initials (tap again for ∅)',
-          tint: scheme.primaryContainer.withValues(alpha: 0.28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final band in JyutpingConstants.initialBands)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 3),
-                  child: Row(
-                    children: [
-                      for (var i = 0; i < band.initials.length; i++) ...[
-                        if (i > 0) const SizedBox(width: 4),
-                        Expanded(
-                          child: _KeyButton(
-                            label: band.initials[i],
-                            selected: draft.initial == band.initials[i],
-                            enabled:
-                                !isTonesOnlyLocked &&
-                                (!isGuided ||
-                                    allowedInitials.contains(band.initials[i])),
-                            onTap: () => onToggleInitial(band.initials[i]),
+        if (_isVisible(ComponentType.initial)) ...[
+          _BandContainer(
+            title: useBeginnerLabels
+                ? 'Start (leave blank for None)'
+                : 'Initials (tap again for ∅)',
+            tint: scheme.primaryContainer.withValues(alpha: 0.28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final band in JyutpingConstants.initialBands)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Row(
+                      children: [
+                        for (var i = 0; i < band.initials.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 4),
+                          Expanded(
+                            child: _KeyButton(
+                              label: band.initials[i],
+                              selected: draft.initial == band.initials[i],
+                              enabled:
+                                  !isTonesOnlyLocked &&
+                                  (!isGuided ||
+                                      allowedInitials.contains(
+                                        band.initials[i],
+                                      )),
+                              onTap: () => onToggleInitial(band.initials[i]),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
+        if (_isVisible(ComponentType.nucleus)) ...[
+          _BandContainer(
+            title: useBeginnerLabels ? 'Vowel' : 'Vowel Nuclei',
+            tint: scheme.secondaryContainer.withValues(alpha: 0.30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildRow(
+                  JyutpingConstants.vowelNuclei.sublist(0, 5),
+                  selectedValue: draft.nucleus,
+                  allowed: allowedNuclei,
+                  locked: isTonesOnlyLocked,
+                  onTap: onToggleNucleus,
                 ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        _BandContainer(
-          title: 'Vowel Nuclei',
-          tint: scheme.secondaryContainer.withValues(alpha: 0.30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildRow(
-                JyutpingConstants.vowelNuclei.sublist(0, 5),
-                selectedValue: draft.nucleus,
-                allowed: allowedNuclei,
-                locked: isTonesOnlyLocked,
-                onTap: onToggleNucleus,
-              ),
-              const SizedBox(height: 3),
-              _buildRow(
-                JyutpingConstants.vowelNuclei.sublist(5, 9),
-                selectedValue: draft.nucleus,
-                allowed: allowedNuclei,
-                locked: isTonesOnlyLocked,
-                onTap: onToggleNucleus,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        _BandContainer(
-          title: 'Codas (tap again for open)',
-          tint: scheme.tertiaryContainer.withValues(alpha: 0.28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildRow(
-                JyutpingConstants.codas.sublist(0, 5),
-                selectedValue: draft.coda,
-                allowed: allowedCodas,
-                locked: isTonesOnlyLocked,
-                prefix: '-',
-                onTap: onToggleCoda,
-              ),
-              const SizedBox(height: 3),
-              _buildRow(
-                JyutpingConstants.codas.sublist(5, 8),
-                selectedValue: draft.coda,
-                allowed: allowedCodas,
-                locked: isTonesOnlyLocked,
-                prefix: '-',
-                onTap: onToggleCoda,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 4),
-        _BandContainer(
-          title: 'Tones',
-          tint: scheme.surfaceContainerHigh,
-          child: Row(
-            children: [
-              for (var i = 0; i < JyutpingConstants.tones.length; i++) ...[
-                if (i > 0) const SizedBox(width: 4),
-                Expanded(
-                  child: _ToneKeyButton(
-                    tone: JyutpingConstants.tones[i],
-                    pitch: JyutpingConstants
-                        .tonePitchLabels[JyutpingConstants.tones[i]]!,
-                    selected: draft.tone == JyutpingConstants.tones[i],
-                    enabled:
-                        !isGuided ||
-                        allowedTones.contains(JyutpingConstants.tones[i]),
-                    onTap: () => onToggleTone(JyutpingConstants.tones[i]),
-                  ),
+                const SizedBox(height: 3),
+                _buildRow(
+                  JyutpingConstants.vowelNuclei.sublist(5, 9),
+                  selectedValue: draft.nucleus,
+                  allowed: allowedNuclei,
+                  locked: isTonesOnlyLocked,
+                  onTap: onToggleNucleus,
                 ),
               ],
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 4),
+        ],
+        if (_isVisible(ComponentType.coda)) ...[
+          _BandContainer(
+            title: useBeginnerLabels
+                ? 'Ending (leave blank for None)'
+                : 'Codas (tap again for open)',
+            tint: scheme.tertiaryContainer.withValues(alpha: 0.28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildRow(
+                  JyutpingConstants.codas.sublist(0, 5),
+                  selectedValue: draft.coda,
+                  allowed: allowedCodas,
+                  locked: isTonesOnlyLocked,
+                  prefix: '-',
+                  onTap: onToggleCoda,
+                ),
+                const SizedBox(height: 3),
+                _buildRow(
+                  JyutpingConstants.codas.sublist(5, 8),
+                  selectedValue: draft.coda,
+                  allowed: allowedCodas,
+                  locked: isTonesOnlyLocked,
+                  prefix: '-',
+                  onTap: onToggleCoda,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
+        if (_isVisible(ComponentType.tone))
+          _BandContainer(
+            title: useBeginnerLabels ? 'Tone' : 'Tones',
+            tint: scheme.surfaceContainerHigh,
+            child: Row(
+              children: [
+                for (var i = 0; i < JyutpingConstants.tones.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 4),
+                  Expanded(
+                    child: _ToneKeyButton(
+                      tone: JyutpingConstants.tones[i],
+                      subtitle: useBeginnerLabels
+                          ? (Curriculum.tonePlainNames[JyutpingConstants
+                                    .tones[i]] ??
+                                '')
+                          : JyutpingConstants
+                                .tonePitchLabels[JyutpingConstants.tones[i]]!,
+                      selected: draft.tone == JyutpingConstants.tones[i],
+                      enabled:
+                          !isGuided ||
+                          allowedTones.contains(JyutpingConstants.tones[i]),
+                      onTap: () => onToggleTone(JyutpingConstants.tones[i]),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         const SizedBox(height: 6),
-        SizedBox(
-          height: 38,
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 40),
           child: FilledButton(
             onPressed: canSubmit ? onSubmit : null,
             child: const Text('Submit'),
@@ -244,12 +269,12 @@ class _KeyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return SizedBox(
-      height: 28,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 28),
       child: OutlinedButton(
         onPressed: enabled ? onTap : null,
         style: OutlinedButton.styleFrom(
-          padding: EdgeInsets.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           backgroundColor: selected ? scheme.primary : scheme.surface,
@@ -261,6 +286,8 @@ class _KeyButton extends StatelessWidget {
         ),
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         ),
       ),
@@ -271,14 +298,14 @@ class _KeyButton extends StatelessWidget {
 class _ToneKeyButton extends StatelessWidget {
   const _ToneKeyButton({
     required this.tone,
-    required this.pitch,
+    required this.subtitle,
     required this.selected,
     required this.enabled,
     required this.onTap,
   });
 
   final int tone;
-  final String pitch;
+  final String subtitle;
   final bool selected;
   final bool enabled;
   final VoidCallback onTap;
@@ -286,12 +313,12 @@ class _ToneKeyButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return SizedBox(
-      height: 34,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 34),
       child: OutlinedButton(
         onPressed: enabled ? onTap : null,
         style: OutlinedButton.styleFrom(
-          padding: EdgeInsets.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           backgroundColor: selected ? scheme.primary : scheme.surface,
@@ -303,13 +330,16 @@ class _ToneKeyButton extends StatelessWidget {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               '$tone',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
             Text(
-              pitch,
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 9,
                 color: selected

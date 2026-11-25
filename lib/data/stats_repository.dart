@@ -1,3 +1,5 @@
+import 'package:material_ui/material_ui.dart';
+
 import '../core/syllable_models.dart';
 import 'database_helper.dart';
 
@@ -40,23 +42,32 @@ class StatsRepository {
   static const String _keyMode = 'constraint_mode';
   static const String _keyFilter = 'focus_filter';
   static const String _keyAutoPlay = 'auto_play';
+  static const String _keyThemeMode = 'theme_mode';
 
   Future<void> recordAttempt(GradingResult result) async {
-    if (result.statsComponents.isEmpty) return;
+    await recordAttemptBatch([result]);
+  }
+
+  /// Persists all graded attempt outcomes from one completed session cleanly.
+  Future<void> recordAttemptBatch(List<GradingResult> results) async {
+    final hasAny = results.any((r) => r.statsComponents.isNotEmpty);
+    if (!hasAny) return;
     final db = await _dbHelper.open();
     await db.transaction((txn) async {
-      for (final comp in result.statsComponents) {
-        final grade = result.grades[comp];
-        if (grade == null) continue;
-        await txn.rawInsert(
-          '''
-          INSERT INTO confusion_stats (component, expected, guessed, count)
-          VALUES (?, ?, ?, 1)
-          ON CONFLICT (component, expected, guessed)
-          DO UPDATE SET count = count + 1
-          ''',
-          [comp.name, grade.expected, grade.guessed],
-        );
+      for (final result in results) {
+        for (final comp in result.statsComponents) {
+          final grade = result.grades[comp];
+          if (grade == null) continue;
+          await txn.rawInsert(
+            '''
+            INSERT INTO confusion_stats (component, expected, guessed, count)
+            VALUES (?, ?, ?, 1)
+            ON CONFLICT (component, expected, guessed)
+            DO UPDATE SET count = count + 1
+            ''',
+            [comp.name, grade.expected, grade.guessed],
+          );
+        }
       }
     });
   }
@@ -160,5 +171,56 @@ class StatsRepository {
         );
       }
     });
+  }
+
+  Future<ThemeMode> loadThemeMode() async {
+    final db = await _dbHelper.open();
+    final rows = await db.query(
+      'app_settings',
+      where: 'key = ?',
+      whereArgs: [_keyThemeMode],
+      limit: 1,
+    );
+    if (rows.isEmpty) return ThemeMode.system;
+    switch (rows.first['value'] as String?) {
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.system;
+    }
+  }
+
+  Future<void> saveThemeMode(ThemeMode mode) async {
+    await _saveSingleSetting(_keyThemeMode, mode.name);
+  }
+
+  Future<bool> loadAutoPlay() async {
+    final db = await _dbHelper.open();
+    final rows = await db.query(
+      'app_settings',
+      where: 'key = ?',
+      whereArgs: [_keyAutoPlay],
+      limit: 1,
+    );
+    if (rows.isEmpty) return true;
+    return rows.first['value'] != 'false';
+  }
+
+  Future<void> saveAutoPlay(bool autoPlay) async {
+    await _saveSingleSetting(_keyAutoPlay, autoPlay.toString());
+  }
+
+  Future<void> _saveSingleSetting(String key, String value) async {
+    final db = await _dbHelper.open();
+    await db.rawInsert(
+      '''
+      INSERT INTO app_settings (key, value)
+      VALUES (?, ?)
+      ON CONFLICT (key) DO UPDATE SET value = excluded.value
+      ''',
+      [key, value],
+    );
   }
 }

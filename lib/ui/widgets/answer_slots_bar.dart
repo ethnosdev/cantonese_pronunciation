@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../core/curriculum.dart';
 import '../../core/jyutping_constants.dart';
 import '../../core/syllable_models.dart';
 
@@ -9,18 +10,37 @@ class AnswerSlotsBar extends StatelessWidget {
     super.key,
     required this.draft,
     required this.result,
-    required this.isTonesOnlyLocked,
+    this.isTonesOnlyLocked = false,
+    this.useBeginnerLabels = false,
+    this.lockedComponents = const {},
     required this.onClearSlot,
   });
 
   final DraftInputState draft;
   final GradingResult? result;
   final bool isTonesOnlyLocked;
+  final bool useBeginnerLabels;
+  final Set<ComponentType> lockedComponents;
   final void Function(ComponentType component) onClearSlot;
+
+  bool _isLocked(ComponentType comp) {
+    if (isTonesOnlyLocked && comp != ComponentType.tone) return true;
+    return lockedComponents.contains(comp);
+  }
 
   @override
   Widget build(BuildContext context) {
     final normalized = result?.autoNormalizedSyllabicNasal ?? false;
+    final initialLocked = _isLocked(ComponentType.initial);
+    final nucleusLocked = _isLocked(ComponentType.nucleus);
+    final codaLocked = _isLocked(ComponentType.coda);
+    final toneLocked = _isLocked(ComponentType.tone);
+    final toneValue = draft.tone == null
+        ? '—'
+        : (useBeginnerLabels
+              ? Curriculum.plainToneLabel(draft.tone!)
+              : '${draft.tone} (${JyutpingConstants.tonePitchLabels[draft.tone]})');
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -28,54 +48,57 @@ class AnswerSlotsBar extends StatelessWidget {
           children: [
             Expanded(
               child: _SlotTile(
-                label: 'Initial',
+                label: ComponentType.initial.displayLabel(
+                  useBeginnerLabels: useBeginnerLabels,
+                ),
                 value: _displaySlot(
                   ComponentType.initial,
                   draft.initial,
-                  locked: isTonesOnlyLocked,
                 ),
                 grade: result?.grades[ComponentType.initial],
-                locked: isTonesOnlyLocked,
+                locked: initialLocked,
                 onTap: () => onClearSlot(ComponentType.initial),
               ),
             ),
             const SizedBox(width: 6),
             Expanded(
               child: _SlotTile(
-                label: 'Nucleus',
+                label: ComponentType.nucleus.displayLabel(
+                  useBeginnerLabels: useBeginnerLabels,
+                ),
                 value: _displaySlot(
                   ComponentType.nucleus,
                   draft.nucleus,
-                  locked: isTonesOnlyLocked,
                 ),
                 grade: result?.grades[ComponentType.nucleus],
-                locked: isTonesOnlyLocked,
+                locked: nucleusLocked,
                 onTap: () => onClearSlot(ComponentType.nucleus),
               ),
             ),
             const SizedBox(width: 6),
             Expanded(
               child: _SlotTile(
-                label: 'Coda',
+                label: ComponentType.coda.displayLabel(
+                  useBeginnerLabels: useBeginnerLabels,
+                ),
                 value: _displaySlot(
                   ComponentType.coda,
                   draft.coda,
-                  locked: isTonesOnlyLocked,
                 ),
                 grade: result?.grades[ComponentType.coda],
-                locked: isTonesOnlyLocked,
+                locked: codaLocked,
                 onTap: () => onClearSlot(ComponentType.coda),
               ),
             ),
             const SizedBox(width: 6),
             Expanded(
               child: _SlotTile(
-                label: 'Tone',
-                value: draft.tone == null
-                    ? '—'
-                    : '${draft.tone} (${JyutpingConstants.tonePitchLabels[draft.tone]})',
+                label: ComponentType.tone.displayLabel(
+                  useBeginnerLabels: useBeginnerLabels,
+                ),
+                value: toneValue,
                 grade: result?.grades[ComponentType.tone],
-                locked: false,
+                locked: toneLocked,
                 onTap: () => onClearSlot(ComponentType.tone),
               ),
             ),
@@ -85,7 +108,9 @@ class AnswerSlotsBar extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              'Normalized to syllabic nasal ${result!.guessedKey.syllable}',
+              useBeginnerLabels
+                  ? 'Hummed syllable ${result!.guessedKey.syllable}'
+                  : 'Normalized to syllabic nasal ${result!.guessedKey.syllable}',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
               ),
@@ -95,15 +120,12 @@ class AnswerSlotsBar extends StatelessWidget {
     );
   }
 
-  String _displaySlot(
-    ComponentType type,
-    String? raw, {
-    required bool locked,
-  }) {
+  String _displaySlot(ComponentType type, String? raw) {
     if (raw == null) return '—';
     if (raw.isEmpty) {
+      if (useBeginnerLabels) return 'None';
       if (type == ComponentType.initial) return '∅';
-      return locked ? '—' : 'open';
+      return 'open';
     }
     return raw;
   }
@@ -130,9 +152,9 @@ class _SlotTile extends StatelessWidget {
     Color borderColor = scheme.outlineVariant;
     Color bgColor = scheme.surfaceContainerLow;
     if (grade != null) {
-      borderColor = grade!.isCorrect ? Colors.green.shade600 : scheme.error;
+      borderColor = grade!.isCorrect ? scheme.primary : scheme.error;
       bgColor = grade!.isCorrect
-          ? Colors.green.withValues(alpha: 0.12)
+          ? scheme.primaryContainer.withValues(alpha: 0.45)
           : scheme.errorContainer.withValues(alpha: 0.45);
     } else if (locked) {
       bgColor = scheme.surfaceContainerHighest;
@@ -169,6 +191,13 @@ class _SlotTile extends StatelessWidget {
                 if (locked) ...[
                   const SizedBox(width: 2),
                   const Icon(Icons.lock, size: 10),
+                ] else if (grade != null) ...[
+                  const SizedBox(width: 2),
+                  Icon(
+                    grade!.isCorrect ? Icons.check : Icons.close,
+                    size: 11,
+                    color: grade!.isCorrect ? scheme.primary : scheme.error,
+                  ),
                 ],
               ],
             ),
