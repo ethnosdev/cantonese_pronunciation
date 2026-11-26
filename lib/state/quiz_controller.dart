@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../audio/audio_playback_service.dart';
 import '../core/guided_constraint_engine.dart';
+import '../core/jyutping_constants.dart';
 import '../core/syllable_grader.dart';
 import '../core/syllable_models.dart';
 import '../core/weighted_sampler.dart';
@@ -9,7 +10,10 @@ import '../data/audio_bundle_repository.dart';
 import '../data/stats_repository.dart';
 import '../data/syllable_repository.dart';
 
-/// Coordinates quiz turns, Guided/Test constraints, grading, and audio calls.
+/// Active keyboard step in the 3-step Practice word builder.
+enum PracticeStep { start, ending, tone }
+
+/// Coordinates Practice turns, 3-step keyboard flow, Guided/Test constraints, and grading.
 class QuizController extends ChangeNotifier {
   QuizController({
     required SyllableRepository syllableRepository,
@@ -37,6 +41,7 @@ class QuizController extends ChangeNotifier {
 
   SyllableEntry? _currentTarget;
   DraftInputState _draft = const DraftInputState();
+  PracticeStep _activeStep = PracticeStep.start;
   GradingResult? _lastResult;
   bool _isLoading = true;
   String? _audioError;
@@ -45,18 +50,49 @@ class QuizController extends ChangeNotifier {
   List<SyllableEntry> get activePool => _activePool;
   SyllableEntry? get currentTarget => _currentTarget;
   DraftInputState get draft => _draft;
+  PracticeStep get activeStep => _activeStep;
   GradingResult? get lastResult => _lastResult;
   bool get isLoading => _isLoading;
   String? get audioError => _audioError;
   bool get isSubmitted => _lastResult != null;
   bool get isTonesOnlyLocked => _settings.focusFilter is TonesOnlyFilter;
+  String? get selectedEnding =>
+      _draft.nucleus == null ? null : '${_draft.nucleus}${_draft.coda ?? ''}';
 
   bool get canSubmit {
     if (isSubmitted || _currentTarget == null) return false;
     if (_settings.constraintMode == ConstraintMode.guided) {
-      return _constraintEngine.canSubmit(_draft, _settings.focusFilter);
+      return _constraintEngine.canSubmit(
+        _draft,
+        _settings.focusFilter,
+        preventToneLeaking: true,
+      );
     }
     return _draft.canSubmit;
+  }
+
+  /// Enabled Start values (`''` for None, `'b'`, etc.) in Guided mode.
+  Set<String> allowedStarts() {
+    if (_settings.constraintMode == ConstraintMode.test) {
+      return const {};
+    }
+    final ending = selectedEnding;
+    return {
+      for (final e in _constraintEngine.pool)
+        if (ending == null || '${e.nucleus}${e.coda}' == ending) e.initial,
+    };
+  }
+
+  /// Enabled 57-Final Ending strings in Guided mode given the selected Start.
+  Set<String> allowedEndings() {
+    if (_settings.constraintMode == ConstraintMode.test) {
+      return const {};
+    }
+    return {
+      for (final e in _constraintEngine.pool)
+        if (_draft.initial == null || e.initial == _draft.initial)
+          '${e.nucleus}${e.coda}',
+    };
   }
 
   Set<String> allowedInitials() {
@@ -84,7 +120,11 @@ class QuizController extends ChangeNotifier {
     if (_settings.constraintMode == ConstraintMode.test) {
       return const {1, 2, 3, 4, 5, 6};
     }
-    return _constraintEngine.allowedTones(_draft, _settings.focusFilter);
+    return _constraintEngine.allowedTones(
+      _draft,
+      _settings.focusFilter,
+      preventToneLeaking: true,
+    );
   }
 
   Future<void> initialize() async {
@@ -107,6 +147,71 @@ class QuizController extends ChangeNotifier {
     await _statsRepo.saveSettings(updated);
     if (poolChanged) {
       await _reloadPoolAndStartTurn(playAudio: _settings.autoPlay);
+    } else {
+      notifyListeners();
+    }
+  }
+
+  void setActiveStep(PracticeStep step) {
+    if (isSubmitted) return;
+    if (isTonesOnlyLocked && step != PracticeStep.tone) return;
+    _activeStep = step;
+    notifyListeners();
+  }
+
+  /// Picks Start (`''` for None) and advances automatically to Endings (or Tone if Ending is set).
+  void selectStart(String initial) {
+    if (isSubmitted || isTonesOnlyLocked) return;
+    var nextNucleus = _draft.nucleus;
+    var nextCoda = _draft.coda;
+    if (nextNucleus != null &&
+        _settings.constraintMode == ConstraintMode.guided) {
+      final ending = '$nextNucleus${nextCoda ?? ''}';
+      final valid = _constraintEngine.pool.any(
+        (e) => e.initial == initial && '${e.nucleus}${e.coda}' == ending,
+      );
+      if (!valid) {
+        nextNucleus = null;
+        nextCoda = null;
+      }
+    }
+    _draft = _draft.copyWith(
+      initial: initial,
+      nucleus: nextNucleus,
+      coda: nextCoda,
+      tone: null,
+    );
+    _activeStep = nextNucleus == null ? PracticeStep.ending : PracticeStep.tone;
+    notifyListeners();
+  }
+
+  /// Picks one of the 57 Endings and advances to Tones (or Start if Start is unselected).
+  void selectEnding(String finalStr) {
+    if (isSubmitted || isTonesOnlyLocked) return;
+    final (nucleus, coda) = JyutpingConstants.splitFinal(finalStr);
+    _draft = _draft.copyWith(nucleus: nucleus, coda: coda, tone: null);
+    _activeStep = _draft.initial == null
+        ? PracticeStep.start
+        : PracticeStep.tone;
+    notifyListeners();
+  }
+
+  /// Picks Tone and immediately submits when Start and Ending are filled.
+  Future<void> selectToneAndSubmit(int tone) async {
+    if (isSubmitted) return;
+    _draft = _draft.copyWith(tone: tone);
+    if (_draft.initial == null) {
+      _activeStep = PracticeStep.start;
+      notifyListeners();
+      return;
+    }
+    if (_draft.nucleus == null) {
+      _activeStep = PracticeStep.ending;
+      notifyListeners();
+      return;
+    }
+    if (canSubmit) {
+      await submit();
     } else {
       notifyListeners();
     }
@@ -156,8 +261,10 @@ class QuizController extends ChangeNotifier {
     if (isSubmitted) return;
     if (isTonesOnlyLocked) {
       _draft = _draft.copyWith(tone: null);
+      _activeStep = PracticeStep.tone;
     } else {
       _draft = const DraftInputState();
+      _activeStep = PracticeStep.start;
     }
     notifyListeners();
   }
@@ -256,8 +363,10 @@ class QuizController extends ChangeNotifier {
         coda: next.coda,
         tone: null,
       );
+      _activeStep = PracticeStep.tone;
     } else {
       _draft = const DraftInputState();
+      _activeStep = PracticeStep.start;
     }
 
     notifyListeners();

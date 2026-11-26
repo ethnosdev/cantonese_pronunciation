@@ -97,6 +97,59 @@ class JyutpingConstants {
     5: '23',
     6: '22',
   };
+
+  /// All 57 attested Cantonese Finals (Endings) grouped by base vowel / hum.
+  static const List<FinalGroup> finalGroups = [
+    FinalGroup(
+      label: 'aa',
+      finals: ['aa', 'aai', 'aau', 'aam', 'aan', 'aang', 'aap', 'aat', 'aak'],
+    ),
+    FinalGroup(
+      label: 'a',
+      finals: ['ai', 'au', 'am', 'an', 'ang', 'ap', 'at', 'ak'],
+    ),
+    FinalGroup(
+      label: 'e',
+      finals: ['e', 'ei', 'eu', 'em', 'en', 'eng', 'ep', 'ek'],
+    ),
+    FinalGroup(label: 'eo', finals: ['eoi', 'eon', 'eot']),
+    FinalGroup(
+      label: 'i',
+      finals: ['i', 'iu', 'im', 'in', 'ing', 'ip', 'it', 'ik'],
+    ),
+    FinalGroup(
+      label: 'o',
+      finals: ['o', 'oi', 'ou', 'on', 'ong', 'ot', 'ok'],
+    ),
+    FinalGroup(label: 'oe', finals: ['oe', 'oeng', 'oek']),
+    FinalGroup(
+      label: 'u',
+      finals: ['u', 'ui', 'un', 'ung', 'ut', 'uk'],
+    ),
+    FinalGroup(label: 'yu', finals: ['yu', 'yun', 'yut']),
+    FinalGroup(label: 'Hums', finals: ['m', 'ng']),
+  ];
+
+  /// Splits a Cantonese final (Ending) such as `aam` or `ng` into `(nucleus, coda)`.
+  static (String nucleus, String coda) splitFinal(String finalStr) {
+    if (finalStr == 'm' || finalStr == 'ng') {
+      return ('', finalStr);
+    }
+    for (final n in nucleiLongestFirst) {
+      if (finalStr.startsWith(n)) {
+        return (n, finalStr.substring(n.length));
+      }
+    }
+    return ('', finalStr);
+  }
+}
+
+/// Visual grouping of Cantonese Finals (Endings) by base vowel.
+class FinalGroup {
+  const FinalGroup({required this.label, required this.finals});
+
+  final String label;
+  final List<String> finals;
 }
 
 /// Visual grouping of consonant initials by place/manner of articulation.

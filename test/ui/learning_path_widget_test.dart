@@ -150,7 +150,7 @@ void main() {
     // Open top-left drawer and navigate to Settings -> persist Dark theme.
     await tester.tap(find.byTooltip('Open navigation menu'));
     await tester.pumpAndSettle();
-    expect(find.text('42-Key Sandbox'), findsOneWidget);
+    expect(find.text('Practice'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
 
     await tester.tap(find.text('Settings'));

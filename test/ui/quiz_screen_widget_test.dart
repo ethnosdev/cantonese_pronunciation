@@ -166,28 +166,37 @@ void main() {
       Size(1024, 768),
     ]) {
       await pumpQuizAtSize(tester, size);
-      expect(find.text('Submit'), findsOneWidget);
-      expect(find.text('55'), findsOneWidget);
+      expect(find.text('Practice'), findsOneWidget);
+      expect(find.byTooltip('Practice options'), findsOneWidget);
+      expect(find.text('Play'), findsOneWidget);
+      expect(find.byKey(const ValueKey('practice-slot-start')), findsOneWidget);
+      expect(find.text('Step 1: Choose Start Sound'), findsOneWidget);
+      expect(find.text('Submit'), findsNothing);
       expect(tester.takeException(), isNull);
     }
 
-    // Any-order entry: tap Tone 1, then Coda -k (unrecorded), then Nucleus aa, then Initial b.
-    await tester.tap(find.text('1'));
-    await tester.pump();
-    await tester.tap(find.text('-k'));
-    await tester.pump();
-    await tester.tap(find.text('aa'));
-    await tester.pump();
+    // Verify Step 2 (all 57 Endings, 6 per row) fits on a 360x640 screen without scrolling.
+    await pumpQuizAtSize(tester, const Size(360, 640));
     await tester.tap(find.text('b'));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(find.text('Step 2: Choose Ending'), findsOneWidget);
+    expect(tester.getBottomRight(find.text('yut')).dy, lessThanOrEqualTo(640));
+    expect(tester.takeException(), isNull);
 
-    // Tap -k again to toggle back to open syllable, then tap -p for unrecorded guess baap1.
-    await tester.tap(find.text('-k'));
-    await tester.pump();
-    await tester.tap(find.text('-p'));
-    await tester.pump();
+    // Tapping the Start segment in the progressive syllable jumps back to Step 1.
+    await tester.tap(find.byKey(const ValueKey('practice-slot-start')));
+    await tester.pumpAndSettle();
+    expect(find.text('Step 1: Choose Start Sound'), findsOneWidget);
 
-    await tester.tap(find.text('Submit'));
+    // Complete 3-step auto-advancing entry: Start ('b') -> Ending ('aap') -> Tone ('1 · High Flat').
+    await tester.tap(find.text('b').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('aap'));
+    await tester.pumpAndSettle();
+    expect(find.text('Step 3: Choose Tone'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('1 · High Flat'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
 
@@ -195,10 +204,14 @@ void main() {
       find.text('This combination (baap1) does not exist in the dataset.'),
       findsOneWidget,
     );
+    expect(find.text('Start: b ✓'), findsOneWidget);
+    expect(find.text('Ending: aap → aa ✗'), findsOneWidget);
+    expect(find.text('Tone: 1 ✓'), findsOneWidget);
     expect(find.text('Next'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     // Tap Tone Wheel 2 and verify playback, then advance turn via Enter key.
+    await tester.ensureVisible(find.text('2'));
     await tester.tap(find.text('2'));
     await tester.pump();
     expect(audio.playedPaths.last, endsWith('aa/2/baa2.opus'));
@@ -208,10 +221,10 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
     expect(audio.clearTurnCalls, greaterThan(priorClears));
-    expect(find.text('Submit'), findsOneWidget);
+    expect(find.text('Step 1: Choose Start Sound'), findsOneWidget);
   });
 
-  testWidgets('supports Space replay and Escape clear shortcuts', (tester) async {
+  testWidgets('supports Space replay, Escape clear, and three-dot menu options', (tester) async {
     await pumpQuizAtSize(tester, const Size(390, 844));
     final initialPlays = audio.playedPaths.length;
 
@@ -220,11 +233,44 @@ void main() {
     expect(audio.playedPaths.length, greaterThan(initialPlays));
 
     await tester.tap(find.text('b'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(controller.draft.initial, 'b');
+    expect(find.text('Step 2: Choose Ending'), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(controller.draft.initial, isNull);
+    expect(find.text('Step 1: Choose Start Sound'), findsOneWidget);
+
+    // Enable Guided mode via the top-right three-dot menu.
+    await tester.tap(find.byTooltip('Practice options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Guided (dim invalid)'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('b'));
+    await tester.pumpAndSettle();
+    expect(find.text('Step 2: Choose Ending'), findsOneWidget);
+
+    // Unrecorded 'aap' is dimmed/disabled in Guided mode so tapping stays on Step 2.
+    await tester.tap(find.text('aap'));
+    await tester.pumpAndSettle();
+    expect(find.text('Step 2: Choose Ending'), findsOneWidget);
+
+    await tester.tap(find.text('aa'));
+    await tester.pumpAndSettle();
+    expect(find.text('Step 3: Choose Tone'), findsOneWidget);
+
+    // Switch Focus Filter via the three-dot menu picker dialog.
+    await tester.tap(find.byTooltip('Practice options'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Focus: All Syllables'));
+    await tester.pumpAndSettle();
+    expect(find.text('Focus Filter'), findsOneWidget);
+    await tester.tap(find.text('Tones Only'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pumpAndSettle();
+    expect(controller.isTonesOnlyLocked, isTrue);
+    expect(find.text('Step 3: Choose Tone'), findsOneWidget);
   });
 }

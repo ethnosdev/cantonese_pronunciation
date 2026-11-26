@@ -10,6 +10,7 @@ class FeedbackToneWheelPanel extends StatelessWidget {
     super.key,
     required this.result,
     this.useBeginnerLabels = false,
+    this.useThreeBeginnerBadges = false,
     required this.onPlayTarget,
     required this.onPlayGuess,
     required this.onPlayToneEntry,
@@ -18,16 +19,39 @@ class FeedbackToneWheelPanel extends StatelessWidget {
 
   final GradingResult result;
   final bool useBeginnerLabels;
+  final bool useThreeBeginnerBadges;
   final VoidCallback onPlayTarget;
   final VoidCallback onPlayGuess;
   final void Function(SyllableEntry entry) onPlayToneEntry;
   final VoidCallback onNext;
+
+  List<ComponentGrade> _displayGrades() {
+    if (!useThreeBeginnerBadges) {
+      return [for (final comp in ComponentType.values) result.grades[comp]!];
+    }
+    final iGrade = result.grades[ComponentType.initial]!;
+    final nGrade = result.grades[ComponentType.nucleus]!;
+    final cGrade = result.grades[ComponentType.coda]!;
+    final tGrade = result.grades[ComponentType.tone]!;
+    return [
+      iGrade,
+      ComponentGrade(
+        component: ComponentType.coda,
+        expected: '${nGrade.expected}${cGrade.expected}',
+        guessed: '${nGrade.guessed}${cGrade.guessed}',
+        isCorrect: nGrade.isCorrect && cGrade.isCorrect,
+      ),
+      tGrade,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final toneByNumber = {for (final e in result.toneFamily) e.tone: e};
     final isChecked = const {'p', 't', 'k'}.contains(result.target.coda);
+    final beginnerMode = useBeginnerLabels || useThreeBeginnerBadges;
+    final badges = _displayGrades();
 
     return Card(
       margin: EdgeInsets.zero,
@@ -62,10 +86,13 @@ class FeedbackToneWheelPanel extends StatelessWidget {
               spacing: 6,
               runSpacing: 4,
               children: [
-                for (final comp in ComponentType.values)
+                for (var i = 0; i < badges.length; i++)
                   _ComponentBadge(
-                    grade: result.grades[comp]!,
-                    useBeginnerLabels: useBeginnerLabels,
+                    grade: badges[i],
+                    useBeginnerLabels: beginnerMode,
+                    overrideLabel: useThreeBeginnerBadges && i == 1
+                        ? 'Ending'
+                        : null,
                   ),
               ],
             ),
@@ -170,7 +197,7 @@ class FeedbackToneWheelPanel extends StatelessWidget {
                             '$t',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          if (useBeginnerLabels)
+                          if (beginnerMode)
                             Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: PitchContourBox(
@@ -212,10 +239,12 @@ class _ComponentBadge extends StatelessWidget {
   const _ComponentBadge({
     required this.grade,
     required this.useBeginnerLabels,
+    this.overrideLabel,
   });
 
   final ComponentGrade grade;
   final bool useBeginnerLabels;
+  final String? overrideLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -224,9 +253,9 @@ class _ComponentBadge extends StatelessWidget {
     final emptyLabel = useBeginnerLabels ? 'None' : '∅';
     final exp = grade.expected.isEmpty ? emptyLabel : grade.expected;
     final guess = grade.guessed.isEmpty ? emptyLabel : grade.guessed;
-    final compLabel = grade.component.displayLabel(
-      useBeginnerLabels: useBeginnerLabels,
-    );
+    final compLabel =
+        overrideLabel ??
+        grade.component.displayLabel(useBeginnerLabels: useBeginnerLabels);
     final text = ok
         ? '$compLabel: $exp ✓'
         : '$compLabel: $guess → $exp ✗';

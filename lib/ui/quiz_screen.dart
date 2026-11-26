@@ -5,11 +5,11 @@ import '../core/jyutping_constants.dart';
 import '../core/syllable_models.dart';
 import '../data/stats_repository.dart';
 import '../state/quiz_controller.dart';
-import 'widgets/answer_slots_bar.dart';
 import 'widgets/feedback_tone_wheel_panel.dart';
-import 'widgets/jyutping_keyboard.dart';
+import 'widgets/practice_slots_bar.dart';
+import 'widgets/practice_step_keyboard.dart';
 
-/// Discrete 42-Key Sandbox quiz screen opened from the Home Drawer.
+/// 3-step (Start -> Ending -> Tone) Practice screen opened from the Home Drawer.
 class QuizScreen extends StatelessWidget {
   const QuizScreen({
     super.key,
@@ -38,36 +38,29 @@ class QuizScreen extends StatelessWidget {
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          appBar: AppBar(title: const Text('42-Key Sandbox')),
+          appBar: AppBar(
+            title: const Text('Practice'),
+            actions: [
+              ListenableBuilder(
+                listenable: controller,
+                builder: (context, _) =>
+                    _PracticeOptionsMenu(controller: controller),
+              ),
+            ],
+          ),
           body: SafeArea(
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 520),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
                   child: ListenableBuilder(
                     listenable: controller,
                     builder: (context, _) {
                       if (controller.isLoading) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      return LayoutBuilder(
-                        builder: (context, constraints) {
-                          final scale = MediaQuery.textScalerOf(
-                            context,
-                          ).scale(1.0);
-                          final needsScroll =
-                              scale > 1.05 || constraints.maxHeight < 620;
-                          final content = _QuizBody(controller: controller);
-                          if (needsScroll) {
-                            return SingleChildScrollView(child: content);
-                          }
-                          return content;
-                        },
-                      );
+                      return _QuizBody(controller: controller);
                     },
                   ),
                 ),
@@ -89,23 +82,35 @@ class _QuizBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = controller.settings;
     return Column(
-      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _TopBar(
-          settings: settings,
-          onTierChanged: (tier) =>
-              controller.updateSettings(settings.copyWith(tier: tier)),
-          onFilterChanged: (filter) =>
-              controller.updateSettings(settings.copyWith(focusFilter: filter)),
-        ),
-        const SizedBox(height: 4),
-        _AudioControlStrip(
-          autoPlay: settings.autoPlay,
-          hasTarget: controller.currentTarget != null,
-          onPlayTarget: controller.playTarget,
-          onToggleAutoPlay: (v) =>
-              controller.updateSettings(settings.copyWith(autoPlay: v)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
+                onPressed: controller.currentTarget != null
+                    ? controller.playTarget
+                    : null,
+                icon: const Icon(Icons.play_arrow, size: 22),
+                label: const Text('Play'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: PracticeSlotsBar(
+                draft: controller.draft,
+                activeStep: controller.activeStep,
+                result: controller.lastResult,
+                isTonesOnlyLocked: controller.isTonesOnlyLocked,
+                onSelectStep: controller.setActiveStep,
+              ),
+            ),
+          ],
         ),
         if (controller.audioError != null)
           Padding(
@@ -118,115 +123,202 @@ class _QuizBody extends StatelessWidget {
               ),
             ),
           ),
-        const SizedBox(height: 6),
-        AnswerSlotsBar(
-          draft: controller.draft,
-          result: controller.lastResult,
-          isTonesOnlyLocked: controller.isTonesOnlyLocked,
-          onClearSlot: controller.clearSlot,
+        const SizedBox(height: 8),
+        Expanded(
+          child: _buildMainContent(settings),
         ),
-        const SizedBox(height: 6),
-        if (controller.currentTarget == null)
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              'No syllables match the selected pool and filter.',
-              textAlign: TextAlign.center,
-            ),
-          )
-        else if (controller.lastResult != null)
-          FeedbackToneWheelPanel(
-            result: controller.lastResult!,
-            onPlayTarget: controller.playTarget,
-            onPlayGuess: controller.playGuess,
-            onPlayToneEntry: controller.playEntry,
-            onNext: controller.nextTurn,
-          )
-        else
-          JyutpingKeyboard(
-            draft: controller.draft,
-            isGuided: settings.constraintMode == ConstraintMode.guided,
-            isTonesOnlyLocked: controller.isTonesOnlyLocked,
-            allowedInitials: controller.allowedInitials(),
-            allowedNuclei: controller.allowedNuclei(),
-            allowedCodas: controller.allowedCodas(),
-            allowedTones: controller.allowedTones(),
-            canSubmit: controller.canSubmit,
-            onToggleInitial: controller.toggleInitial,
-            onToggleNucleus: controller.toggleNucleus,
-            onToggleCoda: controller.toggleCoda,
-            onToggleTone: controller.toggleTone,
-            onSubmit: controller.submit,
-          ),
       ],
+    );
+  }
+
+  Widget _buildMainContent(AppSettings settings) {
+    if (controller.currentTarget == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Text(
+            'No syllables match the selected pool and filter.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+    if (controller.lastResult != null) {
+      return SingleChildScrollView(
+        child: FeedbackToneWheelPanel(
+          result: controller.lastResult!,
+          useBeginnerLabels: true,
+          useThreeBeginnerBadges: true,
+          onPlayTarget: controller.playTarget,
+          onPlayGuess: controller.playGuess,
+          onPlayToneEntry: controller.playEntry,
+          onNext: controller.nextTurn,
+        ),
+      );
+    }
+    return PracticeStepKeyboard(
+      activeStep: controller.activeStep,
+      draft: controller.draft,
+      selectedEnding: controller.selectedEnding,
+      isGuided: settings.constraintMode == ConstraintMode.guided,
+      allowedStarts: controller.allowedStarts(),
+      allowedEndings: controller.allowedEndings(),
+      allowedTones: controller.allowedTones(),
+      onSelectStart: controller.selectStart,
+      onSelectEnding: controller.selectEnding,
+      onSelectTone: controller.selectToneAndSubmit,
     );
   }
 }
 
-class _TopBar extends StatelessWidget {
-  const _TopBar({
-    required this.settings,
-    required this.onTierChanged,
-    required this.onFilterChanged,
-  });
+enum _MenuAction { toggleGuided, toggleAutoPlay, pickFocus, pickTier }
 
-  final AppSettings settings;
-  final void Function(DatasetTier) onTierChanged;
-  final void Function(FocusFilter) onFilterChanged;
+class _PracticeOptionsMenu extends StatelessWidget {
+  const _PracticeOptionsMenu({required this.controller});
+
+  final QuizController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: PopupMenuButton<DatasetTier>(
-            initialValue: settings.tier,
-            onSelected: onTierChanged,
-            itemBuilder: (_) => [
-              for (final t in DatasetTier.values)
-                PopupMenuItem(value: t, child: Text(t.label)),
-            ],
-            child: _CompactChip(
-              icon: Icons.layers_outlined,
-              label: _shortTier(settings.tier),
-            ),
-          ),
+    final settings = controller.settings;
+    final isGuided = settings.constraintMode == ConstraintMode.guided;
+
+    return PopupMenuButton<_MenuAction>(
+      icon: const Icon(Icons.more_vert),
+      tooltip: 'Practice options',
+      onSelected: (action) => _handleAction(context, action, settings),
+      itemBuilder: (_) => [
+        CheckedPopupMenuItem(
+          value: _MenuAction.toggleGuided,
+          checked: isGuided,
+          child: const Text('Guided (dim invalid)'),
         ),
-        const SizedBox(width: 4),
-        Expanded(
-          child: PopupMenuButton<FocusFilter>(
-            initialValue: settings.focusFilter,
-            onSelected: onFilterChanged,
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: AllFilter(),
-                child: Text('All Syllables'),
-              ),
-              const PopupMenuItem(
-                value: TonesOnlyFilter(),
-                child: Text('Tones Only'),
-              ),
-              const PopupMenuDivider(),
-              for (final g in ConfusableInitialGroup.values)
-                PopupMenuItem(
-                  value: InitialContrastFilter(g),
-                  child: Text('Initials: ${g.label}'),
-                ),
-              const PopupMenuDivider(),
-              for (final g in ConfusableFinalGroup.values)
-                PopupMenuItem(
-                  value: FinalContrastFilter(g),
-                  child: Text('Finals: ${g.label}'),
-                ),
-            ],
-            child: _CompactChip(
-              icon: Icons.filter_list,
-              label: settings.focusFilter.label,
-            ),
-          ),
+        CheckedPopupMenuItem(
+          value: _MenuAction.toggleAutoPlay,
+          checked: settings.autoPlay,
+          child: const Text('Auto-play'),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: _MenuAction.pickFocus,
+          child: Text('Focus: ${settings.focusFilter.label}'),
+        ),
+        PopupMenuItem(
+          value: _MenuAction.pickTier,
+          child: Text('Word Pool: ${_shortTier(settings.tier)}'),
         ),
       ],
     );
+  }
+
+  Future<void> _handleAction(
+    BuildContext context,
+    _MenuAction action,
+    AppSettings settings,
+  ) async {
+    switch (action) {
+      case _MenuAction.toggleGuided:
+        final nextMode = settings.constraintMode == ConstraintMode.guided
+            ? ConstraintMode.test
+            : ConstraintMode.guided;
+        await controller.updateSettings(
+          settings.copyWith(constraintMode: nextMode),
+        );
+      case _MenuAction.toggleAutoPlay:
+        await controller.updateSettings(
+          settings.copyWith(autoPlay: !settings.autoPlay),
+        );
+      case _MenuAction.pickFocus:
+        final picked = await _showFocusPicker(context, settings.focusFilter);
+        if (picked != null) {
+          await controller.updateSettings(
+            settings.copyWith(focusFilter: picked),
+          );
+        }
+      case _MenuAction.pickTier:
+        final picked = await _showTierPicker(context, settings.tier);
+        if (picked != null) {
+          await controller.updateSettings(settings.copyWith(tier: picked));
+        }
+    }
+  }
+
+  Future<FocusFilter?> _showFocusPicker(
+    BuildContext context,
+    FocusFilter current,
+  ) {
+    final options = <FocusFilter>[
+      const AllFilter(),
+      const TonesOnlyFilter(),
+      for (final g in ConfusableInitialGroup.values) InitialContrastFilter(g),
+      for (final g in ConfusableFinalGroup.values) FinalContrastFilter(g),
+    ];
+
+    return showDialog<FocusFilter>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Focus Filter'),
+        children: [
+          for (final filter in options)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(filter),
+              child: Row(
+                children: [
+                  Expanded(child: Text(_focusLabel(filter))),
+                  if (filter == current)
+                    Icon(
+                      Icons.check,
+                      size: 18,
+                      color: Theme.of(dialogContext).colorScheme.primary,
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<DatasetTier?> _showTierPicker(
+    BuildContext context,
+    DatasetTier current,
+  ) {
+    return showDialog<DatasetTier>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Word Pool'),
+        children: [
+          for (final tier in DatasetTier.values)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(tier),
+              child: Row(
+                children: [
+                  Expanded(child: Text(tier.label)),
+                  if (tier == current)
+                    Icon(
+                      Icons.check,
+                      size: 18,
+                      color: Theme.of(dialogContext).colorScheme.primary,
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _focusLabel(FocusFilter filter) {
+    switch (filter) {
+      case AllFilter():
+        return 'All Syllables';
+      case TonesOnlyFilter():
+        return 'Tones Only';
+      case InitialContrastFilter(:final group):
+        return 'Initials: ${group.label}';
+      case FinalContrastFilter(:final group):
+        return 'Finals: ${group.label}';
+    }
   }
 
   String _shortTier(DatasetTier tier) {
@@ -238,78 +330,5 @@ class _TopBar extends StatelessWidget {
       case DatasetTier.allRecorded:
         return 'All (5.3k)';
     }
-  }
-}
-
-class _CompactChip extends StatelessWidget {
-  const _CompactChip({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 32,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 15),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12),
-            ),
-          ),
-          const Icon(Icons.arrow_drop_down, size: 16),
-        ],
-      ),
-    );
-  }
-}
-
-class _AudioControlStrip extends StatelessWidget {
-  const _AudioControlStrip({
-    required this.autoPlay,
-    required this.hasTarget,
-    required this.onPlayTarget,
-    required this.onToggleAutoPlay,
-  });
-
-  final bool autoPlay;
-  final bool hasTarget;
-  final VoidCallback onPlayTarget;
-  final void Function(bool) onToggleAutoPlay;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: SizedBox(
-            height: 36,
-            child: FilledButton.tonalIcon(
-              onPressed: hasTarget ? onPlayTarget : null,
-              icon: const Icon(Icons.play_arrow, size: 20),
-              label: const Text('Play Syllable'),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        FilterChip(
-          visualDensity: VisualDensity.compact,
-          label: const Text('Auto-play', style: TextStyle(fontSize: 12)),
-          selected: autoPlay,
-          onSelected: onToggleAutoPlay,
-        ),
-      ],
-    );
   }
 }

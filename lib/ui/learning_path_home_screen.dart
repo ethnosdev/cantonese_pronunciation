@@ -86,7 +86,7 @@ class LearningPathHomeScreen extends StatelessWidget {
                   ),
                   ListTile(
                     leading: const Icon(Icons.keyboard_alt_outlined),
-                    title: const Text('42-Key Sandbox'),
+                    title: const Text('Practice'),
                     onTap: () => _navigateFromDrawer(context, onOpenSandbox),
                   ),
                   ListTile(
