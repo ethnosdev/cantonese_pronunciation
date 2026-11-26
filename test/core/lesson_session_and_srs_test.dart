@@ -73,7 +73,7 @@ void main() {
     final catalog = _testCatalog();
     final spec = Curriculum.lessonById('u1_l1_high_vs_low')!;
 
-    // Fail path: 6/8 correct first attempts = 75% (< 80%).
+    // Fail path: 12/20 correct first attempts = 60% (< 80%), with 8 misses capped at +6 retries.
     final failSession = LessonSession.startLesson(
       spec,
       catalog: catalog,
@@ -98,7 +98,7 @@ void main() {
     var firstAttemptsSeen = 0;
     while (failSession.phase == SessionPhase.trial) {
       final t = failSession.currentTrial!;
-      final pickCorrect = t.isRetry || firstAttemptsSeen >= 2;
+      final pickCorrect = t.isRetry || firstAttemptsSeen >= 8;
       if (!t.isRetry) firstAttemptsSeen++;
       final chosen = pickCorrect
           ? t.choices.firstWhere((c) => c.value == t.expectedChoiceValue)
@@ -109,14 +109,14 @@ void main() {
 
     expect(failSession.phase, SessionPhase.summary);
     expect(failSession.outcome!.passed, isFalse);
-    expect(failSession.outcome!.coreCorrect, 6);
-    expect(failSession.outcome!.coreTotal, 8);
-    // Retries happen at most once per missed item; total graded <= 16.
-    expect(failSession.gradedTotal, lessThanOrEqualTo(10));
+    expect(failSession.outcome!.coreCorrect, 12);
+    expect(failSession.outcome!.coreTotal, 20);
+    // Retries happen at most once per missed item and cap at +6 extra turns (26 total).
+    expect(failSession.gradedTotal, 26);
     // Warmups never enter confusion_stats.
     expect(failSession.pendingStats.length, failSession.gradedTotal);
 
-    // Pass path: 7/8 = 87.5% (>= 80%). Final turn miss does NOT create 0-spacing retry.
+    // Pass path: 19/20 = 95% (>= 80%). Final turn miss does NOT create 0-spacing retry.
     final passSession = LessonSession.startLesson(
       spec,
       catalog: catalog,
@@ -131,7 +131,7 @@ void main() {
     var seen = 0;
     while (passSession.phase == SessionPhase.trial) {
       final t = passSession.currentTrial!;
-      final isFinalTurn = seen == 7 && !t.isRetry;
+      final isFinalTurn = seen == 19 && !t.isRetry;
       if (!t.isRetry) seen++;
       final chosen = isFinalTurn
           ? t.choices.firstWhere((c) => c.value != t.expectedChoiceValue)
@@ -140,8 +140,8 @@ void main() {
       passSession.advanceAfterFeedback();
     }
     expect(passSession.outcome!.passed, isTrue);
-    expect(passSession.outcome!.coreCorrect, 7);
-    expect(passSession.gradedTotal, 8); // final-turn miss did not re-queue
+    expect(passSession.outcome!.coreCorrect, 19);
+    expect(passSession.gradedTotal, 20); // final-turn miss did not re-queue
   });
 
   test('SRS interval progression, replay INSERT OR IGNORE safety, and Daily Review isolation', () async {

@@ -227,6 +227,14 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
     await tester.pump();
 
+    expect(find.text('Accuracy'), findsOneWidget);
+    expect(find.text('Start'), findsOneWidget);
+    expect(find.text('Vowel'), findsOneWidget);
+    expect(find.text('Ending'), findsOneWidget);
+    expect(find.text('Tone'), findsOneWidget);
+    expect(find.text('Initial'), findsNothing);
+    expect(find.text('Nucleus'), findsNothing);
+    expect(find.text('Coda'), findsNothing);
     expect(find.text('Tone: 1 ↔ 3'), findsOneWidget);
     await tester.tap(find.byTooltip('Reset Stats'));
     await tester.pumpAndSettle();

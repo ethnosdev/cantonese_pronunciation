@@ -85,6 +85,9 @@ void main() {
     expect(Curriculum.units.length, 7);
     expect(Curriculum.lessons.length, 28);
     expect(Curriculum.transparentBases.length, 20);
+    for (final lesson in Curriculum.lessons) {
+      expect(lesson.coreCount, greaterThanOrEqualTo(20), reason: lesson.id);
+    }
 
     expect(Curriculum.lessons.first.numberLabel, '1.1');
     expect(Curriculum.lessons.first.id, 'u1_l1_high_vs_low');

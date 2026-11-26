@@ -34,6 +34,9 @@ class LessonSession {
     }
   }
 
+  /// Maximum extra missed-question retry turns inserted in a curriculum lesson.
+  static const int maxLessonRetries = 6;
+
   final bool isDailyReview;
   final LessonSpec? lessonSpec;
   final List<ResolvedHearAndCompareCard> hearAndCompareCards;
@@ -398,8 +401,10 @@ class LessonSession {
 
       if (!isCorrect && !_retriedOriginIds.contains(trial.trialId)) {
         final remainingAfter = _gradedQueue.length - (_gradedIndex + 1);
-        final underTurnCap =
-            _gradedQueue.length < DailyReviewSpec.maxGradedTurns;
+        final maxTurns = isDailyReview
+            ? DailyReviewSpec.maxGradedTurns
+            : _initialCoreCount + maxLessonRetries;
+        final underTurnCap = _gradedQueue.length < maxTurns;
         // Skip retry on final turn so back-to-back 0-spacing repeats never occur.
         if (remainingAfter >= 1 && underTurnCap) {
           _retriedOriginIds.add(trial.trialId);

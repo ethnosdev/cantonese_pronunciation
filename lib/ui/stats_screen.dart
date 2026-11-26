@@ -41,7 +41,7 @@ class _StatsScreenState extends State<StatsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Reset Statistics?'),
         content: const Text(
-          'This clears all locally recorded component accuracy and confusion '
+          'This clears all locally recorded accuracy and confusion '
           'counts on this device.',
         ),
         actions: [
@@ -84,7 +84,7 @@ class _StatsScreenState extends State<StatsScreen> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     Text(
-                      'Component Accuracy',
+                      'Accuracy',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
@@ -97,7 +97,7 @@ class _StatsScreenState extends State<StatsScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(item.component.label),
+                                Text(item.component.beginnerLabel),
                                 Text(
                                   item.total == 0
                                       ? 'No data'
@@ -127,7 +127,7 @@ class _StatsScreenState extends State<StatsScreen> {
                           dense: true,
                           contentPadding: EdgeInsets.zero,
                           title: Text(
-                            '${c.component.label}: '
+                            '${c.component.beginnerLabel}: '
                             '${_token(c.expected)} ↔ ${_token(c.guessed)}',
                           ),
                           trailing: Text('${c.count}×'),

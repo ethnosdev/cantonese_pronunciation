@@ -107,7 +107,7 @@ class Curriculum {
       choices: const ['1', '4'],
       showContoursOnButtons: true,
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -161,7 +161,7 @@ class Curriculum {
       choices: const ['1', '2', '4'],
       showContoursOnButtons: true,
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -216,7 +216,7 @@ class Curriculum {
       choices: const ['1', '2', '3', '4'],
       showContoursOnButtons: true,
       format: ExerciseFormat.choiceCards,
-      coreCount: 10,
+      coreCount: 24,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -276,7 +276,7 @@ class Curriculum {
       choices: const ['1', '2', '3', '4'],
       showContoursOnButtons: false,
       format: ExerciseFormat.choiceCards,
-      coreCount: 10,
+      coreCount: 24,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -297,7 +297,7 @@ class Curriculum {
       differentProperty: DifferentProperty.initial,
       choices: const ['b', 'p'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty && (e.initial == 'b' || e.initial == 'p'),
@@ -346,7 +346,7 @@ class Curriculum {
       differentProperty: DifferentProperty.initial,
       choices: const ['d', 't'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty && (e.initial == 'd' || e.initial == 't'),
@@ -395,7 +395,7 @@ class Curriculum {
       differentProperty: DifferentProperty.initial,
       choices: const ['g', 'k'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty && (e.initial == 'g' || e.initial == 'k'),
@@ -443,7 +443,7 @@ class Curriculum {
       targetComponent: ComponentType.initial,
       choices: const ['b', 'p', 'd', 't', 'g', 'k'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 10,
+      coreCount: 24,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty && _stopInitials.contains(e.initial),
@@ -462,7 +462,7 @@ class Curriculum {
       choices: const ['2', '5'],
       showContoursOnButtons: true,
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -510,7 +510,7 @@ class Curriculum {
       choices: const ['3', '6'],
       showContoursOnButtons: true,
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -557,7 +557,7 @@ class Curriculum {
       choices: const ['2', '3', '4', '5', '6'],
       showContoursOnButtons: false,
       format: ExerciseFormat.choiceCards,
-      coreCount: 10,
+      coreCount: 24,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -576,7 +576,7 @@ class Curriculum {
       choices: const ['1', '2', '3', '4', '5', '6'],
       showContoursOnButtons: false,
       format: ExerciseFormat.choiceCards,
-      coreCount: 12,
+      coreCount: 28,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty && !_checkedCodas.contains(e.coda),
@@ -594,7 +594,7 @@ class Curriculum {
       differentProperty: DifferentProperty.initial,
       choices: const ['n', 'l'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty && (e.initial == 'n' || e.initial == 'l'),
@@ -642,7 +642,7 @@ class Curriculum {
       targetComponent: ComponentType.initial,
       choices: const ['m', 'f', 'h'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -700,7 +700,7 @@ class Curriculum {
       targetComponent: ComponentType.initial,
       choices: const ['z', 'c', 's', 'j'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 10,
+      coreCount: 24,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -773,7 +773,7 @@ class Curriculum {
       targetComponent: ComponentType.initial,
       choices: const ['g', 'k', 'gw', 'kw', 'w'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 10,
+      coreCount: 24,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -848,7 +848,7 @@ class Curriculum {
       differentProperty: DifferentProperty.initial,
       choices: const ['ng', ''],
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty && (e.initial == 'ng' || e.initial == ''),
@@ -898,7 +898,7 @@ class Curriculum {
       targetComponent: ComponentType.nucleus,
       choices: const ['aa', 'e', 'i', 'o', 'u'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 10,
+      coreCount: 24,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.coda.isEmpty &&
@@ -981,7 +981,7 @@ class Curriculum {
       targetComponent: ComponentType.coda,
       choices: const ['', 'i', 'u'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -1040,7 +1040,7 @@ class Curriculum {
       differentProperty: DifferentProperty.coda,
       choices: const ['m', 'n', 'ng'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 10,
+      coreCount: 24,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -1104,7 +1104,7 @@ class Curriculum {
       differentProperty: DifferentProperty.nucleus,
       choices: const ['aa', 'a'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -1152,7 +1152,7 @@ class Curriculum {
         ['yu', 'eo'],
       ],
       format: ExerciseFormat.choiceCards,
-      coreCount: 10,
+      coreCount: 24,
       pairedChoicesRequired: true,
       poolPredicate: (e) {
         if (e.nucleus.isEmpty) return false;
@@ -1220,7 +1220,7 @@ class Curriculum {
       targetComponent: ComponentType.coda,
       choices: const ['p', 't', 'k'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 10,
+      coreCount: 24,
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty &&
@@ -1284,7 +1284,7 @@ class Curriculum {
       poolTier: DatasetTier.pri0And1,
       choices: const ['m', 'hm', 'ng', 'hng'],
       format: ExerciseFormat.choiceCards,
-      coreCount: 8,
+      coreCount: 20,
       pairedChoicesRequired: false,
       poolPredicate: (e) =>
           e.nucleus.isEmpty && _syllabicNasalBases.contains(e.base),
@@ -1353,7 +1353,7 @@ class Curriculum {
       cue: 'Vowel and Ending are filled in—pick the matching Start (leave blank for None) and Tone.',
       poolTier: DatasetTier.pri0,
       format: ExerciseFormat.slotAssembly,
-      coreCount: 10,
+      coreCount: 24,
       poolPredicate: (e) => e.nucleus.isNotEmpty,
       slotMask: const SlotMask(
         lockedComponents: {ComponentType.nucleus, ComponentType.coda},
@@ -1369,7 +1369,7 @@ class Curriculum {
       cue: 'Start is filled in—build Vowel, Ending (leave blank for None), and Tone.',
       poolTier: DatasetTier.pri0,
       format: ExerciseFormat.slotAssembly,
-      coreCount: 10,
+      coreCount: 24,
       poolPredicate: (e) => e.nucleus.isNotEmpty,
       slotMask: const SlotMask(
         lockedComponents: {ComponentType.initial},
@@ -1389,7 +1389,7 @@ class Curriculum {
       cue: 'Assemble all four parts with invalid combinations dimmed as a guide.',
       poolTier: DatasetTier.pri0,
       format: ExerciseFormat.slotAssembly,
-      coreCount: 10,
+      coreCount: 24,
       poolPredicate: (_) => true,
       slotMask: const SlotMask(
         lockedComponents: {},
@@ -1410,7 +1410,7 @@ class Curriculum {
       cue: 'Final mastery check: transcribe every syllable from scratch across all 42 keys.',
       poolTier: DatasetTier.pri0,
       format: ExerciseFormat.slotAssembly,
-      coreCount: 12,
+      coreCount: 28,
       poolPredicate: (_) => true,
       slotMask: const SlotMask(
         lockedComponents: {},
