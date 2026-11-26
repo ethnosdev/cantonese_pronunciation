@@ -10,7 +10,6 @@ class LearningPathHomeScreen extends StatelessWidget {
     super.key,
     required this.controller,
     required this.onStartLesson,
-    required this.onStartDailyReview,
     required this.onOpenSandbox,
     required this.onOpenSoundboard,
     required this.onOpenStats,
@@ -20,7 +19,6 @@ class LearningPathHomeScreen extends StatelessWidget {
 
   final LearningPathController controller;
   final Future<void> Function(LessonSpec lesson) onStartLesson;
-  final Future<void> Function() onStartDailyReview;
   final VoidCallback onOpenSandbox;
   final VoidCallback onOpenSoundboard;
   final VoidCallback onOpenStats;
@@ -69,7 +67,7 @@ class LearningPathHomeScreen extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           '${controller.completedLessonsCount} / '
-                          '${controller.totalLessonsCount} lessons completed',
+                          '${controller.totalLessonsCount} completed',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
@@ -128,18 +126,10 @@ class LearningPathHomeScreen extends StatelessWidget {
                 }
 
                 final nextLesson = controller.recommendedNextLesson;
-                final dueCount = controller.dueReviewCount;
 
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                   children: [
-                    if (dueCount > 0) ...[
-                      _DailyReviewCard(
-                        dueCount: dueCount,
-                        onTap: onStartDailyReview,
-                      ),
-                      const SizedBox(height: 12),
-                    ],
                     if (nextLesson != null) ...[
                       _ContinueLessonBanner(
                         lesson: nextLesson,
@@ -159,62 +149,21 @@ class LearningPathHomeScreen extends StatelessWidget {
                         onStartLesson: onStartLesson,
                       ),
                       const SizedBox(height: 14),
+                      if (Curriculum.cumulativeReviewAfterUnit(unit.id)
+                          case final review?) ...[
+                        _CumulativeReviewCard(
+                          review: review,
+                          status: controller.statusForLesson(review.id),
+                          record: controller.recordForLesson(review.id),
+                          onTap: () => onStartLesson(review),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
                     ],
                   ],
                 );
               },
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DailyReviewCard extends StatelessWidget {
-  const _DailyReviewCard({required this.dueCount, required this.onTap});
-
-  final int dueCount;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      color: scheme.secondaryContainer.withValues(alpha: 0.65),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(Icons.history_edu, color: scheme.onSecondaryContainer),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Daily Review ($dueCount due)',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: scheme.onSecondaryContainer,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Quick 1–2 min refresh of past sound contrasts',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSecondaryContainer,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton(onPressed: onTap, child: const Text('Review')),
-            ],
           ),
         ),
       ),
@@ -267,7 +216,9 @@ class _ContinueLessonBanner extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Lesson ${lesson.numberLabel}: ${lesson.title}',
+              lesson.isCumulativeReview
+                  ? lesson.title
+                  : 'Lesson ${lesson.numberLabel}: ${lesson.title}',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: scheme.onPrimaryContainer,
@@ -282,9 +233,13 @@ class _ContinueLessonBanner extends StatelessWidget {
               onPressed: onTap,
               icon: const Icon(Icons.play_arrow_rounded),
               label: Text(
-                isCompleted
-                    ? 'Practice Lesson ${lesson.numberLabel}'
-                    : 'Continue Lesson ${lesson.numberLabel}',
+                lesson.isCumulativeReview
+                    ? (isCompleted
+                          ? 'Replay Cumulative Review'
+                          : 'Start Cumulative Review')
+                    : (isCompleted
+                          ? 'Practice Lesson ${lesson.numberLabel}'
+                          : 'Continue Lesson ${lesson.numberLabel}'),
               ),
             ),
           ],
@@ -458,6 +413,110 @@ class _LessonTile extends StatelessWidget {
               ),
               if (!locked)
                 Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CumulativeReviewCard extends StatelessWidget {
+  const _CumulativeReviewCard({
+    required this.review,
+    required this.status,
+    required this.record,
+    required this.onTap,
+  });
+
+  final LessonSpec review;
+  final LessonStatus status;
+  final LessonProgressRecord? record;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final locked = status == LessonStatus.locked;
+    final completed = status == LessonStatus.completed;
+
+    final Color bg = completed
+        ? scheme.primaryContainer.withValues(alpha: 0.4)
+        : (locked
+              ? scheme.surfaceContainerLow
+              : scheme.secondaryContainer.withValues(alpha: 0.55));
+    final Color border = completed
+        ? scheme.primary
+        : (locked
+              ? scheme.outlineVariant.withValues(alpha: 0.5)
+              : scheme.secondary);
+
+    final meta = record != null && record!.attemptsCount > 0
+        ? 'Best: ${(record!.bestAccuracy * 100).round()}%  •  '
+              '${review.coreCount} questions'
+        : '${review.coreCount} questions';
+
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: locked ? null : onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            border: Border.all(color: border, width: locked ? 1.0 : 1.4),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                completed
+                    ? Icons.check_circle
+                    : (locked ? Icons.lock_outline : Icons.verified_outlined),
+                color: locked
+                    ? scheme.outline
+                    : (completed ? scheme.primary : scheme.secondary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      review.title,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: locked ? scheme.onSurfaceVariant : null,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      review.cue,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      meta,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!locked) ...[
+                const SizedBox(width: 8),
+                if (completed)
+                  Icon(Icons.chevron_right, color: scheme.onSurfaceVariant)
+                else
+                  FilledButton.tonal(
+                    onPressed: onTap,
+                    child: const Text('Review'),
+                  ),
+              ],
             ],
           ),
         ),

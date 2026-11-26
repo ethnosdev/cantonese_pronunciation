@@ -262,4 +262,110 @@ void main() {
       isTrue,
     );
   });
+
+  test('Cumulative unit reviews split 50/50 latest/earlier, bias to confusions, and unlock safely on upgrade', () async {
+    final catalog = <SyllableEntry>[
+      ..._testCatalog(),
+      for (final i in const ['p', 't', 'g', 'k'])
+        for (final t in const [1, 2, 3, 4])
+          SyllableEntry(
+            syllable: '${i}aa$t',
+            path: 'aa/$t/${i}aa$t.opus',
+            initial: i,
+            nucleus: 'aa',
+            coda: '',
+            tone: t,
+            initialGroup: 0,
+            priority: 0,
+          ),
+    ];
+
+    final u2Review = Curriculum.lessonById('u2_review')!;
+    final reviewSession = LessonSession.startLesson(
+      u2Review,
+      catalog: catalog,
+      confusionStats: const [
+        ConfusionStat(
+          component: ComponentType.initial,
+          expected: 'g',
+          guessed: 'k',
+          count: 40,
+        ),
+      ],
+      random: Random(9),
+      scheduler: ReviewScheduler(clock: () => currentNow),
+    );
+    expect(reviewSession.phase, SessionPhase.trial);
+    expect(reviewSession.hearAndCompareCards, isEmpty);
+    expect(reviewSession.warmupTrials, isEmpty);
+    expect(reviewSession.gradedTotal, 20);
+
+    var u1Count = 0;
+    var u2Count = 0;
+    var gTargetCount = 0;
+    while (reviewSession.phase == SessionPhase.trial) {
+      final t = reviewSession.currentTrial!;
+      expect(t.showContoursOnButtons, isFalse);
+      if (t.sourceLessonId.startsWith('u1_')) u1Count++;
+      if (t.sourceLessonId.startsWith('u2_')) u2Count++;
+      if (t.expectedChoiceValue == 'g') gTargetCount++;
+      reviewSession.submitChoice(
+        t.choices.firstWhere((c) => c.value == t.expectedChoiceValue),
+      );
+      reviewSession.advanceAfterFeedback();
+    }
+    expect(u1Count, 10);
+    expect(u2Count, 10);
+    expect(gTargetCount, greaterThan(0));
+    expect(reviewSession.outcome!.passed, isTrue);
+
+    // Passing u2_l4 unlocks u2_review, and passing u2_review unlocks u3_l1.
+    await progressRepo.completeLessonAttempt(
+      lessonId: 'u2_l4_stops_review',
+      accuracy: 0.9,
+      passed: true,
+      nextLessonId: Curriculum.nextLessonIdAfter('u2_l4_stops_review'),
+      skillsToSeed: const [],
+    );
+    var prog = await progressRepo.loadAllLessonProgress();
+    expect(prog['u2_review']?.status, LessonStatus.unlocked);
+
+    await progressRepo.completeLessonAttempt(
+      lessonId: 'u2_review',
+      accuracy: 0.9,
+      passed: true,
+      nextLessonId: Curriculum.nextLessonIdAfter('u2_review'),
+      skillsToSeed: const [],
+    );
+    prog = await progressRepo.loadAllLessonProgress();
+    expect(prog['u2_review']?.status, LessonStatus.completed);
+    expect(prog['u3_l1_rising_2_vs_5']?.status, LessonStatus.unlocked);
+
+    // Upgrade safety: existing DB with u3_l1 unlocked before u2_review existed auto-unlocks u2_review.
+    final upgradeDir = await Directory.systemTemp.createTemp('upgrade_test_');
+    try {
+      final upgradeDb = DatabaseHelper(
+        factory: databaseFactoryFfiNoIsolate,
+        supportDirProvider: () async => upgradeDir,
+      );
+      final upgradeRepo = ProgressRepository(upgradeDb, clock: () => currentNow);
+      final db = await upgradeDb.open();
+      await db.insert('lesson_progress', {
+        'lesson_id': 'u3_l1_rising_2_vs_5',
+        'status': LessonStatus.unlocked.name,
+        'best_accuracy': 0.0,
+        'attempts_count': 0,
+        'last_completed_at': null,
+        'updated_at': currentNow.millisecondsSinceEpoch,
+      });
+      await upgradeRepo.ensureLesson1Unlocked();
+      final upgraded = await upgradeRepo.loadAllLessonProgress();
+      expect(upgraded['u2_review']?.status, LessonStatus.unlocked);
+      await upgradeDb.close();
+    } finally {
+      if (upgradeDir.existsSync()) {
+        await upgradeDir.delete(recursive: true);
+      }
+    }
+  });
 }

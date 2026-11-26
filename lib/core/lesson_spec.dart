@@ -167,6 +167,7 @@ class LessonSpec {
     this.warmup,
     this.slotMask,
     this.seedSkills = const [],
+    this.cumulativeReviewUpToUnit,
   });
 
   final String id;
@@ -188,6 +189,11 @@ class LessonSpec {
   final WarmupSpec? warmup;
   final SlotMask? slotMask;
   final List<ContrastSkill> seedSkills;
+
+  /// Non-null for cumulative unit checkpoint reviews (e.g. `2` reviews Units 1–2).
+  final int? cumulativeReviewUpToUnit;
+
+  bool get isCumulativeReview => cumulativeReviewUpToUnit != null;
 }
 
 /// Sentinel settings marker for standalone Daily Review sessions.

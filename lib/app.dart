@@ -233,7 +233,6 @@ class _CantonesePronunciationAppState extends State<CantonesePronunciationApp> {
                 return LearningPathHomeScreen(
                   controller: _pathController,
                   onStartLesson: (lesson) => _openLesson(lesson),
-                  onStartDailyReview: () => _openLesson(null),
                   onOpenSandbox: () => _pushRoute(
                     QuizScreen(controller: _getOrCreateSandboxController()),
                   ),

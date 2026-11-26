@@ -19,7 +19,7 @@ class ProgressRepository {
 
   static const String initialLessonId = 'u1_l1_high_vs_low';
 
-  /// Seeds Lesson 1.1 as unlocked on fresh databases without touching existing rows.
+  /// Seeds Lesson 1.1 as unlocked and unlocks cumulative reviews for existing progress.
   Future<void> ensureLesson1Unlocked([DateTime? now]) async {
     final ts = (now ?? _scheduler.now()).toUtc().millisecondsSinceEpoch;
     final db = await _dbHelper.open();
@@ -35,6 +35,41 @@ class ProgressRepository {
       },
       conflictAlgorithm: ConflictAlgorithm.ignore,
     );
+
+    final existing = await loadAllLessonProgress();
+    for (var i = 0; i < Curriculum.lessons.length; i++) {
+      final spec = Curriculum.lessons[i];
+      if (!spec.isCumulativeReview) continue;
+      final currentStatus = existing[spec.id]?.status ?? LessonStatus.locked;
+      if (currentStatus != LessonStatus.locked) continue;
+
+      final prevCompleted =
+          i > 0 &&
+          existing[Curriculum.lessons[i - 1].id]?.status ==
+              LessonStatus.completed;
+      var anyLaterActive = false;
+      for (var j = i + 1; j < Curriculum.lessons.length; j++) {
+        final s = existing[Curriculum.lessons[j].id]?.status;
+        if (s == LessonStatus.unlocked || s == LessonStatus.completed) {
+          anyLaterActive = true;
+          break;
+        }
+      }
+      if (prevCompleted || anyLaterActive) {
+        await db.insert(
+          'lesson_progress',
+          {
+            'lesson_id': spec.id,
+            'status': LessonStatus.unlocked.name,
+            'best_accuracy': 0.0,
+            'attempts_count': 0,
+            'last_completed_at': null,
+            'updated_at': ts,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+    }
   }
 
   /// Loads every persisted lesson record keyed by `lesson_id`.

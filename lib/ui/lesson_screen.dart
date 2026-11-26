@@ -244,7 +244,9 @@ class _LessonTopBar extends StatelessWidget {
                 Text(
                   controller.isDailyReview
                       ? DailyReviewSpec.title
-                      : '${spec?.numberLabel ?? ''} ${spec?.title ?? ''}',
+                      : (spec?.isCumulativeReview == true
+                            ? spec!.title
+                            : '${spec?.numberLabel ?? ''} ${spec?.title ?? ''}'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -1233,9 +1235,20 @@ class _SummaryView extends StatelessWidget {
     }
 
     final pct = (outcome.accuracy * 100).round();
+    final isReview = controller.lessonSpec?.isCumulativeReview ?? false;
     final nextLesson = outcome.unlockedNextLessonId != null
         ? Curriculum.lessonById(outcome.unlockedNextLessonId!)
         : null;
+    final nextTitle = nextLesson == null
+        ? null
+        : (nextLesson.isCumulativeReview
+              ? nextLesson.title
+              : '${nextLesson.numberLabel} ${nextLesson.title}');
+    final nextButtonLabel = nextLesson == null
+        ? null
+        : (nextLesson.isCumulativeReview
+              ? 'Next: ${nextLesson.title}'
+              : 'Next: Lesson ${nextLesson.numberLabel}');
 
     return Card(
       child: Padding(
@@ -1250,7 +1263,9 @@ class _SummaryView extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              outcome.passed ? 'Lesson Complete' : 'Almost There',
+              outcome.passed
+                  ? (isReview ? 'Review Complete' : 'Lesson Complete')
+                  : 'Almost There',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
@@ -1266,8 +1281,8 @@ class _SummaryView extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               outcome.passed
-                  ? (nextLesson != null
-                        ? 'Next unlocked: ${nextLesson.numberLabel} ${nextLesson.title}'
+                  ? (nextTitle != null
+                        ? 'Next unlocked: $nextTitle'
                         : 'You completed the entire 7-unit course.')
                   : 'Reach 80% on first attempts to unlock the next lesson.',
               textAlign: TextAlign.center,
@@ -1275,34 +1290,24 @@ class _SummaryView extends StatelessWidget {
                 color: scheme.onSurfaceVariant,
               ),
             ),
-            if (outcome.seededSkillCount > 0) ...[
-              const SizedBox(height: 6),
-              Text(
-                '${outcome.seededSkillCount} contrast skills added to Daily Review.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: scheme.primary,
-                ),
-              ),
-            ],
             const SizedBox(height: 18),
-            if (nextLesson != null && onOpenNextLesson != null) ...[
+            if (nextButtonLabel != null && onOpenNextLesson != null) ...[
               FilledButton(
-                onPressed: () => onOpenNextLesson!(nextLesson),
-                child: Text('Next: Lesson ${nextLesson.numberLabel}'),
+                onPressed: () => onOpenNextLesson!(nextLesson!),
+                child: Text(nextButtonLabel),
               ),
               const SizedBox(height: 8),
             ] else if (!outcome.passed) ...[
               FilledButton(
                 onPressed: onRetryLesson,
-                child: const Text('Retry Lesson'),
+                child: Text(isReview ? 'Retry Review' : 'Retry Lesson'),
               ),
               const SizedBox(height: 8),
             ],
             if (outcome.passed) ...[
               OutlinedButton(
                 onPressed: onRetryLesson,
-                child: const Text('Retry Lesson'),
+                child: Text(isReview ? 'Retry Review' : 'Retry Lesson'),
               ),
               const SizedBox(height: 8),
             ],

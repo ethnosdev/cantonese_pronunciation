@@ -448,6 +448,18 @@ class Curriculum {
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty && _stopInitials.contains(e.initial),
     ),
+    LessonSpec(
+      id: 'u2_review',
+      unitId: 'unit_2',
+      numberLabel: 'R2',
+      title: 'Cumulative Review · Units 1–2',
+      cue: 'Mix tones from Unit 1 with soft and air-puff starts from Unit 2.',
+      poolTier: DatasetTier.pri0And1,
+      format: ExerciseFormat.choiceCards,
+      coreCount: 20,
+      poolPredicate: (e) => e.nucleus.isNotEmpty,
+      cumulativeReviewUpToUnit: 2,
+    ),
 
     // ---------------- Unit 3: All Six Tones ----------------
     LessonSpec(
@@ -580,6 +592,18 @@ class Curriculum {
       pairedChoicesRequired: true,
       poolPredicate: (e) =>
           e.nucleus.isNotEmpty && !_checkedCodas.contains(e.coda),
+    ),
+    LessonSpec(
+      id: 'u3_review',
+      unitId: 'unit_3',
+      numberLabel: 'R3',
+      title: 'Cumulative Review · Units 1–3',
+      cue: 'Review all six tones alongside soft and air-puff starts.',
+      poolTier: DatasetTier.pri0And1,
+      format: ExerciseFormat.choiceCards,
+      coreCount: 24,
+      poolPredicate: (e) => e.nucleus.isNotEmpty,
+      cumulativeReviewUpToUnit: 3,
     ),
 
     // ---------------- Unit 4: Remaining Starts ----------------
@@ -886,6 +910,18 @@ class Curriculum {
         ),
       ],
     ),
+    LessonSpec(
+      id: 'u4_review',
+      unitId: 'unit_4',
+      numberLabel: 'R4',
+      title: 'Cumulative Review · Units 1–4',
+      cue: 'Mix all six tones with every start consonant learned so far.',
+      poolTier: DatasetTier.pri0And1,
+      format: ExerciseFormat.choiceCards,
+      coreCount: 24,
+      poolPredicate: (e) => e.nucleus.isNotEmpty,
+      cumulativeReviewUpToUnit: 4,
+    ),
 
     // ---------------- Unit 5: Open Vowels & Basic Endings ----------------
     LessonSpec(
@@ -1090,6 +1126,18 @@ class Curriculum {
           displayLabel: 'Ending -ng',
         ),
       ],
+    ),
+    LessonSpec(
+      id: 'u5_review',
+      unitId: 'unit_5',
+      numberLabel: 'R5',
+      title: 'Cumulative Review · Units 1–5',
+      cue: 'Review open vowels, glides, and nasal endings alongside tones and starts.',
+      poolTier: DatasetTier.pri0And1,
+      format: ExerciseFormat.choiceCards,
+      coreCount: 24,
+      poolPredicate: (e) => e.nucleus.isNotEmpty,
+      cumulativeReviewUpToUnit: 5,
     ),
 
     // ---------------- Unit 6: Contrasts, Clipped Endings & Hums ----------------
@@ -1343,6 +1391,18 @@ class Curriculum {
         ),
       ],
     ),
+    LessonSpec(
+      id: 'u6_review',
+      unitId: 'unit_6',
+      numberLabel: 'R6',
+      title: 'Cumulative Review · Units 1–6',
+      cue: 'Full contrast review across all tones, starts, vowels, endings, and hums.',
+      poolTier: DatasetTier.pri0And1,
+      format: ExerciseFormat.choiceCards,
+      coreCount: 24,
+      poolPredicate: (_) => true,
+      cumulativeReviewUpToUnit: 6,
+    ),
 
     // ---------------- Unit 7: Multi-Slot Assembly to Mastery ----------------
     LessonSpec(
@@ -1433,6 +1493,12 @@ class Curriculum {
     for (final l in lessons) ...l.seedSkills,
   ];
 
+  static List<LessonSpec> get standardLessons =>
+      lessons.where((l) => !l.isCumulativeReview).toList(growable: false);
+
+  static List<LessonSpec> get cumulativeReviews =>
+      lessons.where((l) => l.isCumulativeReview).toList(growable: false);
+
   static LessonSpec? lessonById(String id) => _lessonsById[id];
 
   static String? nextLessonIdAfter(String lessonId) {
@@ -1441,8 +1507,23 @@ class Curriculum {
     return lessons[idx + 1].id;
   }
 
-  static List<LessonSpec> lessonsForUnit(String unitId) =>
-      lessons.where((l) => l.unitId == unitId).toList(growable: false);
+  static List<LessonSpec> lessonsForUnit(String unitId) => lessons
+      .where((l) => l.unitId == unitId && !l.isCumulativeReview)
+      .toList(growable: false);
+
+  static LessonSpec? cumulativeReviewAfterUnit(String unitId) {
+    for (final l in lessons) {
+      if (l.isCumulativeReview && l.unitId == unitId) return l;
+    }
+    return null;
+  }
+
+  static int? unitNumberFor(String unitId) {
+    for (final u in units) {
+      if (u.id == unitId) return u.number;
+    }
+    return null;
+  }
 
   /// Filters [catalog] to entries matching [spec]'s priority tier and predicate.
   static List<SyllableEntry> filterPool(

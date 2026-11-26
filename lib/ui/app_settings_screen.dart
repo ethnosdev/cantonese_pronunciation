@@ -60,8 +60,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Reset Learning Progress?'),
         content: const Text(
-          'This locks Lessons 1.2–7.4 again and clears scheduled Daily Review '
-          'items on this device. Audio clips remain installed.',
+          'This locks Lessons 1.2–7.4 and Cumulative Reviews again on this '
+          'device. Audio clips remain installed.',
         ),
         actions: [
           TextButton(

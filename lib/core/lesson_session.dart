@@ -100,10 +100,11 @@ class LessonSession {
     return (done / total).clamp(0.0, 1.0);
   }
 
-  /// Starts a single-format standard lesson session (Units 1–7).
+  /// Starts a curriculum lesson (1.1–7.4) or cumulative unit review.
   factory LessonSession.startLesson(
     LessonSpec spec, {
     required List<SyllableEntry> catalog,
+    List<ConfusionStat> confusionStats = const [],
     Random? random,
     ReviewScheduler? scheduler,
   }) {
@@ -111,6 +112,28 @@ class LessonSession {
     final sched = scheduler ?? ReviewScheduler();
     final byKey = {for (final e in catalog) e.key: e};
     final families = _groupToneFamilies(catalog);
+
+    if (spec.isCumulativeReview) {
+      final reviewTrials = _buildCumulativeReviewTrials(
+        spec,
+        catalog: catalog,
+        catalogByKey: byKey,
+        confusionStats: confusionStats,
+        rng: rng,
+      );
+      return LessonSession._(
+        isDailyReview: false,
+        lessonSpec: spec,
+        hearAndCompareCards: const [],
+        warmupTrials: const [],
+        gradedQueue: reviewTrials,
+        catalogByKey: byKey,
+        toneFamiliesByBase: families,
+        scheduler: sched,
+        reviewItemsBySkillId: const {},
+      );
+    }
+
     final rawPool = Curriculum.filterPool(spec, catalog);
     final pairedPool = Curriculum.pairedEntries(spec, rawPool, byKey);
     final usablePool = pairedPool.isNotEmpty ? pairedPool : rawPool;
@@ -754,5 +777,196 @@ class LessonSession {
       case ExerciseFormat.sameDifferent:
         return spec.cue;
     }
+  }
+
+  static List<LessonTrial> _buildCumulativeReviewTrials(
+    LessonSpec spec, {
+    required List<SyllableEntry> catalog,
+    required Map<SyllableKey, SyllableEntry> catalogByKey,
+    required List<ConfusionStat> confusionStats,
+    required Random rng,
+  }) {
+    final upToUnit = spec.cumulativeReviewUpToUnit;
+    if (upToUnit == null) return const [];
+
+    final errorCounts = <(ComponentType, String), int>{};
+    for (final s in confusionStats) {
+      if (s.expected != s.guessed) {
+        final key = (s.component, s.expected);
+        errorCounts[key] = (errorCounts[key] ?? 0) + s.count;
+      }
+    }
+
+    final latestBuckets = <(LessonSpec, List<SyllableEntry>)>[];
+    final earlierBuckets = <(LessonSpec, List<SyllableEntry>)>[];
+
+    for (final src in Curriculum.standardLessons) {
+      if (src.format != ExerciseFormat.choiceCards) continue;
+      final unitNum = Curriculum.unitNumberFor(src.unitId);
+      if (unitNum == null || unitNum > upToUnit) continue;
+      final raw = Curriculum.filterPool(src, catalog);
+      final paired = Curriculum.pairedEntries(src, raw, catalogByKey);
+      final usable = paired.isNotEmpty ? paired : raw;
+      if (usable.isEmpty) continue;
+      if (unitNum == upToUnit) {
+        latestBuckets.add((src, usable));
+      } else {
+        earlierBuckets.add((src, usable));
+      }
+    }
+
+    if (latestBuckets.isEmpty && earlierBuckets.isEmpty) return const [];
+    var latestCount = spec.coreCount ~/ 2;
+    var earlierCount = spec.coreCount - latestCount;
+    if (latestBuckets.isEmpty) {
+      latestCount = 0;
+      earlierCount = spec.coreCount;
+    } else if (earlierBuckets.isEmpty) {
+      latestCount = spec.coreCount;
+      earlierCount = 0;
+    }
+
+    final combined = <LessonTrial>[
+      ..._sampleBucketTrials(
+        buckets: latestBuckets,
+        count: latestCount,
+        errorCounts: errorCounts,
+        catalogByKey: catalogByKey,
+        rng: rng,
+      ),
+      ..._sampleBucketTrials(
+        buckets: earlierBuckets,
+        count: earlierCount,
+        errorCounts: errorCounts,
+        catalogByKey: catalogByKey,
+        rng: rng,
+      ),
+    ];
+
+    combined.shuffle(rng);
+    for (var i = 1; i < combined.length; i++) {
+      if (combined[i].target.syllable == combined[i - 1].target.syllable) {
+        for (var j = i + 1; j < combined.length; j++) {
+          if (combined[j].target.syllable != combined[i - 1].target.syllable) {
+            final tmp = combined[i];
+            combined[i] = combined[j];
+            combined[j] = tmp;
+            break;
+          }
+        }
+      }
+    }
+
+    return [
+      for (var i = 0; i < combined.length; i++)
+        LessonTrial(
+          trialId: '${spec.id}_core_$i',
+          target: combined[i].target,
+          promptText: combined[i].promptText,
+          format: combined[i].format,
+          deckSource: combined[i].deckSource,
+          sourceLessonId: combined[i].sourceLessonId,
+          differentProperty: combined[i].differentProperty,
+          choices: combined[i].choices,
+          statsComponents: combined[i].statsComponents,
+          showContoursOnButtons: false,
+          expectedChoiceValue: combined[i].expectedChoiceValue,
+        ),
+    ];
+  }
+
+  static List<LessonTrial> _sampleBucketTrials({
+    required List<(LessonSpec, List<SyllableEntry>)> buckets,
+    required int count,
+    required Map<(ComponentType, String), int> errorCounts,
+    required Map<SyllableKey, SyllableEntry> catalogByKey,
+    required Random rng,
+  }) {
+    if (count <= 0 || buckets.isEmpty) return const [];
+
+    final sourceWeights = <double>[];
+    for (final (src, _) in buckets) {
+      final allChoices = <String>{
+        ...src.choices,
+        if (src.choiceGroups != null)
+          for (final g in src.choiceGroups!) ...g,
+      };
+      var totalErrors = 0;
+      if (src.targetComponent != null) {
+        for (final c in allChoices) {
+          totalErrors += errorCounts[(src.targetComponent!, c)] ?? 0;
+        }
+      }
+      sourceWeights.add(1.0 + min(5.0, totalErrors * 0.5));
+    }
+
+    final trials = <LessonTrial>[];
+    String? lastSyllable;
+
+    for (var i = 0; i < count; i++) {
+      final bucketIdx = _pickWeightedIndex(sourceWeights, rng);
+      final (src, usable) = buckets[bucketIdx];
+      final nonRepeat = usable
+          .where((e) => e.syllable != lastSyllable)
+          .toList();
+      final candidates = nonRepeat.isNotEmpty ? nonRepeat : usable;
+
+      final entryWeights = <double>[
+        for (final e in candidates)
+          1.0 +
+              (src.targetComponent != null
+                  ? (errorCounts[(
+                              src.targetComponent!,
+                              Curriculum.componentValue(src, e),
+                            )] ??
+                            0)
+                        .toDouble()
+                  : 0.0),
+      ];
+      final target = candidates[_pickWeightedIndex(entryWeights, rng)];
+      lastSyllable = target.syllable;
+
+      final expectedVal = Curriculum.componentValue(src, target);
+      final choices = Curriculum.choicesForEntry(src, target)
+          .map(
+            (val) => Curriculum.buildChoiceOption(
+              spec: src,
+              target: target,
+              value: val,
+              catalogByKey: catalogByKey,
+            ),
+          )
+          .toList(growable: false);
+
+      trials.add(
+        LessonTrial(
+          trialId: '${src.id}_tmp_$i',
+          target: target,
+          promptText: _promptForLesson(src),
+          format: ExerciseFormat.choiceCards,
+          deckSource: DeckSource.core,
+          sourceLessonId: src.id,
+          differentProperty: src.differentProperty,
+          choices: choices,
+          statsComponents: src.targetComponent != null
+              ? [src.targetComponent!]
+              : const [],
+          showContoursOnButtons: false,
+          expectedChoiceValue: expectedVal,
+        ),
+      );
+    }
+    return trials;
+  }
+
+  static int _pickWeightedIndex(List<double> weights, Random rng) {
+    final total = weights.fold<double>(0.0, (sum, w) => sum + w);
+    if (total <= 0) return rng.nextInt(weights.length);
+    var roll = rng.nextDouble() * total;
+    for (var i = 0; i < weights.length; i++) {
+      roll -= weights[i];
+      if (roll <= 0) return i;
+    }
+    return weights.length - 1;
   }
 }

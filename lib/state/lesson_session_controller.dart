@@ -110,9 +110,13 @@ class LessonSessionController extends ChangeNotifier {
     if (lessonSpec != null) {
       final pool = Curriculum.filterPool(lessonSpec!, catalog);
       _constraintEngine = GuidedConstraintEngine(pool);
+      final confusionStats = lessonSpec!.isCumulativeReview
+          ? await _statsRepo.loadAllStats()
+          : const <ConfusionStat>[];
       _session = LessonSession.startLesson(
         lessonSpec!,
         catalog: catalog,
+        confusionStats: confusionStats,
         random: _random,
         scheduler: scheduler,
       );

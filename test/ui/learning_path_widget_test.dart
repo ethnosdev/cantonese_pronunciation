@@ -139,12 +139,17 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.textContaining('Daily Review (2 due)'), findsOneWidget);
+    expect(find.text('Daily Review'), findsNothing);
     await tester.scrollUntilVisible(
       find.textContaining('1.1  High Flat (1) vs. Low Falling (4)'),
       120,
     );
     expect(find.textContaining('1.1  High Flat (1) vs. Low Falling (4)'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Cumulative Review · Units 1–2'),
+      180,
+    );
+    expect(find.text('Cumulative Review · Units 1–2'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     // Open top-left drawer and navigate to Settings -> persist Dark theme.

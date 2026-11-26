@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:cantonese_pronunciation/core/curriculum.dart';
+import 'package:cantonese_pronunciation/core/lesson_session.dart';
 import 'package:cantonese_pronunciation/core/syllable_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -81,9 +83,11 @@ List<SyllableEntry> _buildRichFixtureCatalog() {
 }
 
 void main() {
-  test('curriculum defines 7 units, 28 lessons, and 48 distinct contrast skills', () {
+  test('curriculum defines 7 units, 28 lessons, 5 cumulative reviews, and 48 contrast skills', () {
     expect(Curriculum.units.length, 7);
-    expect(Curriculum.lessons.length, 28);
+    expect(Curriculum.standardLessons.length, 28);
+    expect(Curriculum.cumulativeReviews.length, 5);
+    expect(Curriculum.lessons.length, 33);
     expect(Curriculum.transparentBases.length, 20);
     for (final lesson in Curriculum.lessons) {
       expect(lesson.coreCount, greaterThanOrEqualTo(20), reason: lesson.id);
@@ -93,6 +97,10 @@ void main() {
     expect(Curriculum.lessons.first.id, 'u1_l1_high_vs_low');
     expect(Curriculum.lessons.last.numberLabel, '7.4');
     expect(Curriculum.lessons.last.id, 'u7_l4_open_42_keys');
+    expect(Curriculum.nextLessonIdAfter('u2_l4_stops_review'), 'u2_review');
+    expect(Curriculum.nextLessonIdAfter('u2_review'), 'u3_l1_rising_2_vs_5');
+    expect(Curriculum.nextLessonIdAfter('u6_l4_syllabic_nasals'), 'u6_review');
+    expect(Curriculum.nextLessonIdAfter('u6_review'), 'u7_l1_start_plus_tone');
 
     expect(Curriculum.allSeedSkills.length, 48);
     final uniqueSkillIds = Curriculum.allSeedSkills.map((s) => s.skillId).toSet();
@@ -129,7 +137,7 @@ void main() {
     final catalog = _buildRichFixtureCatalog();
     final byKey = {for (final e in catalog) e.key: e};
 
-    for (final spec in Curriculum.lessons) {
+    for (final spec in Curriculum.standardLessons) {
       final pool = Curriculum.filterPool(spec, catalog);
       expect(pool, isNotEmpty, reason: '${spec.id} filtered pool empty');
       final paired = Curriculum.pairedEntries(spec, pool, byKey);
@@ -165,9 +173,18 @@ void main() {
         );
       }
     }
+
+    for (final review in Curriculum.cumulativeReviews) {
+      final session = LessonSession.startLesson(
+        review,
+        catalog: catalog,
+        random: Random(1),
+      );
+      expect(session.gradedTotal, review.coreCount, reason: review.id);
+    }
   });
 
-  test('validates all 28 lessons against real jyutnet syllables.json when present', () {
+  test('validates all 28 lessons and 5 cumulative reviews against real jyutnet syllables.json when present', () {
     final file = File('../jyutnet-audio-bundle/dist/syllables.json');
     if (!file.existsSync()) return;
     final decoded = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
@@ -188,11 +205,20 @@ void main() {
         .toList();
     final byKey = {for (final e in catalog) e.key: e};
 
-    for (final spec in Curriculum.lessons) {
+    for (final spec in Curriculum.standardLessons) {
       final pool = Curriculum.filterPool(spec, catalog);
       final paired = Curriculum.pairedEntries(spec, pool, byKey);
       expect(pool, isNotEmpty, reason: 'Real corpus empty for ${spec.id}');
       expect(paired, isNotEmpty, reason: 'Real paired empty for ${spec.id}');
+    }
+
+    for (final review in Curriculum.cumulativeReviews) {
+      final session = LessonSession.startLesson(
+        review,
+        catalog: catalog,
+        random: Random(2),
+      );
+      expect(session.gradedTotal, review.coreCount, reason: review.id);
     }
   });
 }
