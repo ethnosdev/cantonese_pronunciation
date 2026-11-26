@@ -241,7 +241,8 @@ class _BandContainer extends StatelessWidget {
             child: Text(
               title,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                fontSize: 10,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
@@ -270,7 +271,7 @@ class _KeyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 28),
+      constraints: const BoxConstraints(minHeight: 32),
       child: OutlinedButton(
         onPressed: enabled ? onTap : null,
         style: OutlinedButton.styleFrom(
@@ -284,11 +285,13 @@ class _KeyButton extends StatelessWidget {
           ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            maxLines: 1,
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
         ),
       ),
     );
@@ -314,7 +317,7 @@ class _ToneKeyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 34),
+      constraints: const BoxConstraints(minHeight: 36),
       child: OutlinedButton(
         onPressed: enabled ? onTap : null,
         style: OutlinedButton.styleFrom(
@@ -334,17 +337,19 @@ class _ToneKeyButton extends StatelessWidget {
           children: [
             Text(
               '$tone',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 9,
-                color: selected
-                    ? scheme.onPrimary.withValues(alpha: 0.9)
-                    : scheme.onSurfaceVariant,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                subtitle,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: selected
+                      ? scheme.onPrimary.withValues(alpha: 0.9)
+                      : scheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],

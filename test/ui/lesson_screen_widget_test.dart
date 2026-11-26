@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -166,12 +167,12 @@ void main() {
     }
 
     // Core choice cards: curves visible, NO Chao digits '55'/'21'.
-    expect(find.text('1 · High Flat'), findsOneWidget);
+    expect(find.text('High Flat'), findsOneWidget);
     expect(find.text('55'), findsNothing);
     expect(find.byType(PitchContourBox), findsNWidgets(2));
 
     // Close before submitting any graded item pops without dialog.
-    await tester.tap(find.text('1 · High Flat'));
+    await tester.tap(find.text('High Flat'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
     expect(ctrl.submittedCount, 1);
@@ -187,25 +188,25 @@ void main() {
     addTearDown(ctrl.dispose);
 
     // 6 choices rendered with curves OFF on buttons and uniform button height.
-    expect(find.text('1 · High Flat'), findsOneWidget);
-    expect(find.text('6 · Low Flat'), findsOneWidget);
+    expect(find.text('High Flat'), findsOneWidget);
+    expect(find.text('Low Flat'), findsOneWidget);
     expect(find.byType(PitchContourBox), findsNothing);
     expect(tester.takeException(), isNull);
 
     final choiceHeights = [
       for (final label in const [
-        '1 · High Flat',
-        '2 · High Rising',
-        '3 · Mid Flat',
-        '4 · Low Falling',
-        '5 · Low Rising',
-        '6 · Low Flat',
+        'High Flat',
+        'High Rising',
+        'Mid Flat',
+        'Low Falling',
+        'Low Rising',
+        'Low Flat',
       ])
         tester.getSize(find.ancestor(of: find.text(label), matching: find.byType(Material)).first).height,
     ];
     expect(choiceHeights.toSet().length, 1);
 
-    await tester.tap(find.text('1 · High Flat'));
+    await tester.tap(find.text('High Flat'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
 
@@ -251,4 +252,157 @@ void main() {
     expect(find.byType(FeedbackToneWheelPanel), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('highlights Target and Your Guess cards in sync with comparison audio playback', (tester) async {
+    final ctrlAudio = _ControllableAudioService();
+    await tester.runAsync(() => statsRepo.saveAutoPlay(false));
+    final spec34 = Curriculum.lessonById('u3_l4_six_tone_check')!;
+    final ctrl = LessonSessionController(
+      syllableRepository: syllableRepo,
+      bundleRepository: bundleRepo,
+      statsRepository: statsRepo,
+      progressRepository: progressRepo,
+      audioService: ctrlAudio,
+      lessonSpec: spec34,
+      random: Random(1),
+    );
+    addTearDown(ctrl.dispose);
+
+    await tester.runAsync(() => ctrl.initialize());
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LessonScreen(controller: ctrl, onRetryLesson: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final wrongChoice = ctrl.currentTrial!.choices.firstWhere(
+      (c) => c.value != ctrl.currentTrial!.expectedChoiceValue,
+    );
+    final wrongTapLabel = wrongChoice.tone != null
+        ? Curriculum.tonePlainNames[wrongChoice.tone!]!
+        : wrongChoice.label;
+    await tester.tap(find.text(wrongTapLabel));
+    await tester.pump();
+    await tester.runAsync(() async {
+      for (var i = 0; i < 50 && ctrlAudio.clipDone == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+    });
+    await tester.pump();
+
+    double opacityFor(String prefix) {
+      final finder = find.ancestor(
+        of: find.textContaining(prefix),
+        matching: find.byType(AnimatedOpacity),
+      );
+      return tester.widget<AnimatedOpacity>(finder.first).opacity;
+    }
+
+    double borderWidthFor(String prefix) {
+      final finder = find.ancestor(
+        of: find.textContaining(prefix),
+        matching: find.byType(AnimatedContainer),
+      );
+      final dec =
+          tester.widget<AnimatedContainer>(finder.first).decoration!
+              as BoxDecoration;
+      return dec.border!.top.width;
+    }
+
+    // Clip 0 (Target) playing -> Target bright/2.5px border, Guess dimmed.
+    expect(ctrl.activeFeedbackClipIndex, 0);
+    expect(opacityFor('Target · '), 1.0);
+    expect(borderWidthFor('Target · '), 2.5);
+    expect(opacityFor('Your Guess · '), 0.52);
+    expect(borderWidthFor('Your Guess · '), 1.0);
+
+    // End Clip 0 -> inter-clip pause: neither card highlighted or dimmed.
+    final c0 = ctrlAudio.clipDone!;
+    ctrlAudio.clipDone = null;
+    c0.complete();
+    await tester.runAsync(() async {
+      for (var i = 0; i < 50 && ctrlAudio.gapDone == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+    });
+    await tester.pumpAndSettle();
+    expect(ctrl.activeFeedbackClipIndex, isNull);
+    expect(opacityFor('Target · '), 1.0);
+    expect(opacityFor('Your Guess · '), 1.0);
+    expect(borderWidthFor('Target · '), 1.0);
+
+    // End pause -> Clip 1 (Your Guess) playing -> Guess 2.5px border, Target dimmed.
+    final g0 = ctrlAudio.gapDone!;
+    ctrlAudio.gapDone = null;
+    g0.complete();
+    await tester.runAsync(() async {
+      for (var i = 0; i < 50 && ctrlAudio.clipDone == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+    });
+    await tester.pumpAndSettle();
+    expect(ctrl.activeFeedbackClipIndex, 1);
+    expect(opacityFor('Your Guess · '), 1.0);
+    expect(borderWidthFor('Your Guess · '), 2.5);
+    expect(opacityFor('Target · '), 0.52);
+
+    // End Clip 1 -> both return to normal.
+    final c1 = ctrlAudio.clipDone!;
+    ctrlAudio.clipDone = null;
+    c1.complete();
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+    await tester.pumpAndSettle();
+    expect(ctrl.activeFeedbackClipIndex, isNull);
+    expect(opacityFor('Target · '), 1.0);
+    expect(opacityFor('Your Guess · '), 1.0);
+
+    // Manual tap on Target highlights Target while playing and clears on end.
+    await tester.ensureVisible(find.textContaining('Target · '));
+    await tester.tap(find.textContaining('Target · '));
+    await tester.pump();
+    await tester.runAsync(() async {
+      for (var i = 0; i < 50 && ctrlAudio.clipDone == null; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+      }
+    });
+    await tester.pumpAndSettle();
+    expect(ctrl.activeFeedbackClipIndex, 0);
+    expect(borderWidthFor('Target · '), 2.5);
+    expect(opacityFor('Your Guess · '), 0.52);
+
+    final cManual = ctrlAudio.clipDone!;
+    ctrlAudio.clipDone = null;
+    cManual.complete();
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+    await tester.pumpAndSettle();
+    expect(ctrl.activeFeedbackClipIndex, isNull);
+    expect(opacityFor('Your Guess · '), 1.0);
+  });
+}
+
+class _ControllableAudioService extends FakeAudioPlaybackService {
+  Completer<void>? clipDone;
+  Completer<void>? gapDone;
+
+  @override
+  Future<void> playSequence(
+    List<String> paths, {
+    Duration initialDelay = Duration.zero,
+    Duration gap = const Duration(milliseconds: 450),
+    void Function(int index)? onClipStart,
+    void Function(int index)? onClipEnd,
+  }) async {
+    for (var i = 0; i < paths.length; i++) {
+      onClipStart?.call(i);
+      playedPaths.add(paths[i]);
+      clipDone = Completer<void>();
+      await clipDone!.future;
+      onClipEnd?.call(i);
+      if (i + 1 < paths.length && gap > Duration.zero) {
+        gapDone = Completer<void>();
+        await gapDone!.future;
+      }
+    }
+  }
 }

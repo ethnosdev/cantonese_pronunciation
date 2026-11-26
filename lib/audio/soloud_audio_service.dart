@@ -73,6 +73,7 @@ class SoLoudAudioService implements AudioPlaybackService {
     Duration initialDelay = Duration.zero,
     Duration gap = const Duration(milliseconds: 450),
     void Function(int index)? onClipStart,
+    void Function(int index)? onClipEnd,
   }) async {
     if (paths.isEmpty) return;
     if (!_initialized) {
@@ -94,6 +95,7 @@ class SoLoudAudioService implements AudioPlaybackService {
       if (handle == null || token != _requestToken) return;
       await _waitForVoiceCompletion(handle, token);
       if (token != _requestToken) return;
+      onClipEnd?.call(i);
       if (i + 1 < paths.length && gap > Duration.zero) {
         await Future<void>.delayed(gap);
       }

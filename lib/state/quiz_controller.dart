@@ -45,6 +45,8 @@ class QuizController extends ChangeNotifier {
   GradingResult? _lastResult;
   bool _isLoading = true;
   String? _audioError;
+  int? _activeFeedbackClipIndex;
+  int _playbackToken = 0;
 
   AppSettings get settings => _settings;
   List<SyllableEntry> get activePool => _activePool;
@@ -54,6 +56,7 @@ class QuizController extends ChangeNotifier {
   GradingResult? get lastResult => _lastResult;
   bool get isLoading => _isLoading;
   String? get audioError => _audioError;
+  int? get activeFeedbackClipIndex => _activeFeedbackClipIndex;
   bool get isSubmitted => _lastResult != null;
   bool get isTonesOnlyLocked => _settings.focusFilter is TonesOnlyFilter;
   String? get selectedEnding =>
@@ -299,13 +302,17 @@ class QuizController extends ChangeNotifier {
   Future<void> playTarget() async {
     final target = _currentTarget;
     if (target == null) return;
-    await _playEntry(target);
+    if (isSubmitted) {
+      await _playComparisonClip(target, 0);
+    } else {
+      await _playEntry(target);
+    }
   }
 
   Future<void> playGuess() async {
     final guess = _lastResult?.guessedEntry;
     if (guess == null) return;
-    await _playEntry(guess);
+    await _playComparisonClip(guess, 1);
   }
 
   Future<void> playEntry(SyllableEntry entry) async {
@@ -340,6 +347,8 @@ class QuizController extends ChangeNotifier {
   }
 
   void _startTurn({required bool playAudio}) {
+    _playbackToken++;
+    _activeFeedbackClipIndex = null;
     _lastResult = null;
     _audioError = null;
     if (_activePool.isEmpty) {
@@ -376,7 +385,41 @@ class QuizController extends ChangeNotifier {
     }
   }
 
+  Future<void> _playComparisonClip(SyllableEntry entry, int clipIndex) async {
+    final myToken = ++_playbackToken;
+    try {
+      _audioError = null;
+      final fullPath = await _bundleRepo.resolveAudioFilePath(entry.path);
+      await audioService.playSequence(
+        [fullPath],
+        onClipStart: (_) {
+          if (myToken != _playbackToken) return;
+          _activeFeedbackClipIndex = clipIndex;
+          notifyListeners();
+        },
+        onClipEnd: (_) {
+          if (myToken != _playbackToken) return;
+          _activeFeedbackClipIndex = null;
+          notifyListeners();
+        },
+      );
+    } catch (e) {
+      _audioError = e.toString();
+      notifyListeners();
+    } finally {
+      if (myToken == _playbackToken && _activeFeedbackClipIndex != null) {
+        _activeFeedbackClipIndex = null;
+        notifyListeners();
+      }
+    }
+  }
+
   Future<void> _playEntry(SyllableEntry entry) async {
+    _playbackToken++;
+    if (_activeFeedbackClipIndex != null) {
+      _activeFeedbackClipIndex = null;
+      notifyListeners();
+    }
     try {
       _audioError = null;
       final fullPath = await _bundleRepo.resolveAudioFilePath(entry.path);

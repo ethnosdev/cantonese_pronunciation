@@ -11,6 +11,7 @@ class FeedbackToneWheelPanel extends StatelessWidget {
     required this.result,
     this.useBeginnerLabels = false,
     this.useThreeBeginnerBadges = false,
+    this.activeClipIndex,
     required this.onPlayTarget,
     required this.onPlayGuess,
     required this.onPlayToneEntry,
@@ -20,6 +21,7 @@ class FeedbackToneWheelPanel extends StatelessWidget {
   final GradingResult result;
   final bool useBeginnerLabels;
   final bool useThreeBeginnerBadges;
+  final int? activeClipIndex;
   final VoidCallback onPlayTarget;
   final VoidCallback onPlayGuess;
   final void Function(SyllableEntry entry) onPlayToneEntry;
@@ -100,59 +102,37 @@ class FeedbackToneWheelPanel extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: _ComparisonActionButton(
+                    icon: Icons.volume_up,
+                    roleLabel: 'Target',
+                    syllable: result.target.syllable,
+                    tone: result.target.tone,
+                    isCheckedTone: isChecked,
+                    accentColor: scheme.primary,
+                    fillColor: scheme.primaryContainer,
+                    isPlaying: activeClipIndex == 0,
+                    isDimmed: activeClipIndex != null && activeClipIndex != 0,
                     onPressed: onPlayTarget,
-                    icon: const Icon(Icons.volume_up, size: 18),
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            'Target (${result.target.syllable})',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        PitchContourBox(
-                          tone: result.target.tone,
-                          isCheckedTone: isChecked,
-                          width: 28,
-                          height: 16,
-                          showGuides: false,
-                        ),
-                      ],
-                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: _ComparisonActionButton(
+                    icon: Icons.hearing,
+                    roleLabel: 'Guess',
+                    syllable: result.guessedKey.syllable,
+                    tone: result.guessedKey.tone,
+                    isCheckedTone: const {
+                      'p',
+                      't',
+                      'k',
+                    }.contains(result.guessedKey.coda),
+                    accentColor: scheme.error,
+                    fillColor: scheme.errorContainer,
+                    contourColor: scheme.secondary,
+                    isPlaying: activeClipIndex == 1,
+                    isDimmed: activeClipIndex != null && activeClipIndex != 1,
                     onPressed: result.isGuessPlayable ? onPlayGuess : null,
-                    icon: const Icon(Icons.hearing, size: 18),
-                    label: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            'Guess (${result.guessedKey.syllable})',
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        PitchContourBox(
-                          tone: result.guessedKey.tone,
-                          isCheckedTone: const {
-                            'p',
-                            't',
-                            'k',
-                          }.contains(result.guessedKey.coda),
-                          width: 28,
-                          height: 16,
-                          color: scheme.secondary,
-                          showGuides: false,
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ],
@@ -195,7 +175,10 @@ class FeedbackToneWheelPanel extends StatelessWidget {
                         children: [
                           Text(
                             '$t',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           if (beginnerMode)
                             Padding(
@@ -211,7 +194,7 @@ class FeedbackToneWheelPanel extends StatelessWidget {
                           else
                             Text(
                               JyutpingConstants.tonePitchLabels[t]!,
-                              style: const TextStyle(fontSize: 10),
+                              style: const TextStyle(fontSize: 12),
                             ),
                         ],
                       ),
@@ -262,10 +245,117 @@ class _ComponentBadge extends StatelessWidget {
     return Chip(
       visualDensity: VisualDensity.compact,
       padding: EdgeInsets.zero,
-      label: Text(text, style: const TextStyle(fontSize: 11)),
+      label: Text(text, style: const TextStyle(fontSize: 13)),
       backgroundColor: ok
           ? scheme.primaryContainer.withValues(alpha: 0.6)
           : scheme.errorContainer,
+    );
+  }
+}
+
+class _ComparisonActionButton extends StatelessWidget {
+  const _ComparisonActionButton({
+    required this.icon,
+    required this.roleLabel,
+    required this.syllable,
+    required this.tone,
+    required this.isCheckedTone,
+    required this.accentColor,
+    required this.fillColor,
+    this.contourColor,
+    required this.isPlaying,
+    required this.isDimmed,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String roleLabel;
+  final String syllable;
+  final int tone;
+  final bool isCheckedTone;
+  final Color accentColor;
+  final Color fillColor;
+  final Color? contourColor;
+  final bool isPlaying;
+  final bool isDimmed;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 120),
+      opacity: isDimmed ? 0.52 : 1.0,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isPlaying
+              ? [
+                  BoxShadow(
+                    color: accentColor.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : const [],
+        ),
+        child: OutlinedButton(
+          onPressed: onPressed,
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            backgroundColor: isPlaying ? fillColor : null,
+            side: BorderSide(
+              color: isPlaying ? accentColor : scheme.outline,
+              width: isPlaying ? 2.5 : 1.0,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 16),
+                  const SizedBox(width: 4),
+                  Text(roleLabel, style: const TextStyle(fontSize: 13)),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        syllable,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  PitchContourBox(
+                    tone: tone,
+                    isCheckedTone: isCheckedTone,
+                    width: 28,
+                    height: 16,
+                    color: contourColor,
+                    showGuides: false,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

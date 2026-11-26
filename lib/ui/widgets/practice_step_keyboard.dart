@@ -100,8 +100,8 @@ class _StartKeyboard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Step 1: Choose Start Sound',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            'Start',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
@@ -121,8 +121,8 @@ class _StartKeyboard extends StatelessWidget {
                         enabled:
                             !isGuided ||
                             allowedStarts.contains(band.initials[i]),
-                        minHeight: 40,
-                        fontSize: 15,
+                        minHeight: 44,
+                        fontSize: 17,
                         onTap: () => onSelectStart(band.initials[i]),
                       ),
                     ),
@@ -132,11 +132,11 @@ class _StartKeyboard extends StatelessWidget {
             ),
           const SizedBox(height: 2),
           _StepKeyButton(
-            label: 'None (no start consonant)',
+            label: 'None',
             selected: selectedInitial == '',
             enabled: !isGuided || allowedStarts.contains(''),
-            minHeight: 40,
-            fontSize: 14,
+            minHeight: 44,
+            fontSize: 16,
             onTap: () => onSelectStart(''),
           ),
         ],
@@ -189,10 +189,10 @@ class _EndingsKeyboard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Step 2: Choose Ending',
+            'Ending',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
@@ -230,7 +230,7 @@ class _EndingsKeyboard extends StatelessWidget {
                                             .contains(rows[r][c].label),
                                     minHeight: rowHeight,
                                     exactHeight: rowHeight,
-                                    fontSize: 13,
+                                    fontSize: 15,
                                     backgroundTint:
                                         rows[r][c].familyIndex.isOdd
                                         ? oddTint
@@ -285,8 +285,8 @@ class _TonesKeyboard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Step 3: Choose Tone',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          'Tone',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
             color: scheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
           ),
@@ -295,7 +295,7 @@ class _TonesKeyboard extends StatelessWidget {
         UniformTwoColumnGrid(
           spacing: 8,
           runSpacing: 8,
-          minTileHeight: 72,
+          minTileHeight: 86,
           children: [
             for (final tone in JyutpingConstants.tones)
               _ToneTileButton(
@@ -330,6 +330,7 @@ class _ToneTileButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final name = Curriculum.tonePlainNames[tone] ?? '';
     return Material(
       color: selected ? scheme.primaryContainer : scheme.surface,
       borderRadius: BorderRadius.circular(12),
@@ -350,11 +351,26 @@ class _ToneTileButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                Curriculum.plainToneLabel(tone),
+                '$tone',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                style: TextStyle(
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: enabled ? null : scheme.onSurfaceVariant,
+                  color: enabled ? scheme.onSurface : scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
               ),
               const SizedBox(height: 6),

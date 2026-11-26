@@ -234,12 +234,8 @@ class _ContinueLessonBanner extends StatelessWidget {
               icon: const Icon(Icons.play_arrow_rounded),
               label: Text(
                 lesson.isCumulativeReview
-                    ? (isCompleted
-                          ? 'Replay Cumulative Review'
-                          : 'Start Cumulative Review')
-                    : (isCompleted
-                          ? 'Practice Lesson ${lesson.numberLabel}'
-                          : 'Continue Lesson ${lesson.numberLabel}'),
+                    ? (isCompleted ? 'Replay Review' : 'Start Review')
+                    : (isCompleted ? 'Practice' : 'Continue'),
               ),
             ),
           ],
@@ -388,22 +384,14 @@ class _LessonTile extends StatelessWidget {
                   children: [
                     Text(
                       '${lesson.numberLabel}  ${lesson.title}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: locked ? scheme.onSurfaceVariant : null,
                       ),
                     ),
                     if (record != null && record!.attemptsCount > 0)
                       Text(
-                        'Best: ${(record!.bestAccuracy * 100).round()}%  •  '
-                        '${lesson.coreCount} trials',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      )
-                    else
-                      Text(
-                        '${lesson.coreCount} trials',
+                        'Best: ${(record!.bestAccuracy * 100).round()}%',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -451,11 +439,6 @@ class _CumulativeReviewCard extends StatelessWidget {
               ? scheme.outlineVariant.withValues(alpha: 0.5)
               : scheme.secondary);
 
-    final meta = record != null && record!.attemptsCount > 0
-        ? 'Best: ${(record!.bestAccuracy * 100).round()}%  •  '
-              '${review.coreCount} questions'
-        : '${review.coreCount} questions';
-
     return Material(
       color: bg,
       borderRadius: BorderRadius.circular(14),
@@ -485,25 +468,20 @@ class _CumulativeReviewCard extends StatelessWidget {
                   children: [
                     Text(
                       review.title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: locked ? scheme.onSurfaceVariant : null,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      review.cue,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                    if (record != null && record!.attemptsCount > 0) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        'Best: ${(record!.bestAccuracy * 100).round()}%',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      meta,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
+                    ],
                   ],
                 ),
               ),

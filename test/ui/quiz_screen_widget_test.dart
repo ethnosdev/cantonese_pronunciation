@@ -38,10 +38,12 @@ class FakeAudioPlaybackService implements AudioPlaybackService {
     Duration initialDelay = Duration.zero,
     Duration gap = const Duration(milliseconds: 450),
     void Function(int index)? onClipStart,
+    void Function(int index)? onClipEnd,
   }) async {
     for (var i = 0; i < paths.length; i++) {
       onClipStart?.call(i);
       playedPaths.add(paths[i]);
+      onClipEnd?.call(i);
     }
   }
 
@@ -170,7 +172,7 @@ void main() {
       expect(find.byTooltip('Practice options'), findsOneWidget);
       expect(find.text('Play'), findsOneWidget);
       expect(find.byKey(const ValueKey('practice-slot-start')), findsOneWidget);
-      expect(find.text('Step 1: Choose Start Sound'), findsOneWidget);
+      expect(find.text('Start'), findsOneWidget);
       expect(find.text('Submit'), findsNothing);
       expect(tester.takeException(), isNull);
     }
@@ -179,24 +181,24 @@ void main() {
     await pumpQuizAtSize(tester, const Size(360, 640));
     await tester.tap(find.text('b'));
     await tester.pumpAndSettle();
-    expect(find.text('Step 2: Choose Ending'), findsOneWidget);
+    expect(find.text('Ending'), findsOneWidget);
     expect(tester.getBottomRight(find.text('yut')).dy, lessThanOrEqualTo(640));
     expect(tester.takeException(), isNull);
 
     // Tapping the Start segment in the progressive syllable jumps back to Step 1.
     await tester.tap(find.byKey(const ValueKey('practice-slot-start')));
     await tester.pumpAndSettle();
-    expect(find.text('Step 1: Choose Start Sound'), findsOneWidget);
+    expect(find.text('Start'), findsOneWidget);
 
-    // Complete 3-step auto-advancing entry: Start ('b') -> Ending ('aap') -> Tone ('1 · High Flat').
+    // Complete 3-step auto-advancing entry: Start ('b') -> Ending ('aap') -> Tone ('High Flat').
     await tester.tap(find.text('b').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('aap'));
     await tester.pumpAndSettle();
-    expect(find.text('Step 3: Choose Tone'), findsOneWidget);
+    expect(find.text('Tone'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('1 · High Flat'));
+    await tester.tap(find.text('High Flat'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
 
@@ -221,7 +223,7 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
     expect(audio.clearTurnCalls, greaterThan(priorClears));
-    expect(find.text('Step 1: Choose Start Sound'), findsOneWidget);
+    expect(find.text('Start'), findsOneWidget);
   });
 
   testWidgets('supports Space replay, Escape clear, and three-dot menu options', (tester) async {
@@ -235,12 +237,12 @@ void main() {
     await tester.tap(find.text('b'));
     await tester.pumpAndSettle();
     expect(controller.draft.initial, 'b');
-    expect(find.text('Step 2: Choose Ending'), findsOneWidget);
+    expect(find.text('Ending'), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(controller.draft.initial, isNull);
-    expect(find.text('Step 1: Choose Start Sound'), findsOneWidget);
+    expect(find.text('Start'), findsOneWidget);
 
     // Enable Guided mode via the top-right three-dot menu.
     await tester.tap(find.byTooltip('Practice options'));
@@ -250,16 +252,16 @@ void main() {
 
     await tester.tap(find.text('b'));
     await tester.pumpAndSettle();
-    expect(find.text('Step 2: Choose Ending'), findsOneWidget);
+    expect(find.text('Ending'), findsOneWidget);
 
     // Unrecorded 'aap' is dimmed/disabled in Guided mode so tapping stays on Step 2.
     await tester.tap(find.text('aap'));
     await tester.pumpAndSettle();
-    expect(find.text('Step 2: Choose Ending'), findsOneWidget);
+    expect(find.text('Ending'), findsOneWidget);
 
     await tester.tap(find.text('aa'));
     await tester.pumpAndSettle();
-    expect(find.text('Step 3: Choose Tone'), findsOneWidget);
+    expect(find.text('Tone'), findsOneWidget);
 
     // Switch Focus Filter via the three-dot menu picker dialog.
     await tester.tap(find.byTooltip('Practice options'));
@@ -271,6 +273,6 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
     expect(controller.isTonesOnlyLocked, isTrue);
-    expect(find.text('Step 3: Choose Tone'), findsOneWidget);
+    expect(find.text('Tone'), findsOneWidget);
   });
 }

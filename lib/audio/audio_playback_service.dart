@@ -16,6 +16,7 @@ abstract class AudioPlaybackService {
     Duration initialDelay = Duration.zero,
     Duration gap = const Duration(milliseconds: 450),
     void Function(int index)? onClipStart,
+    void Function(int index)? onClipEnd,
   });
 
   Future<void> stop();

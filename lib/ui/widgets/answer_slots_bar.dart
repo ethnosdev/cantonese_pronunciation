@@ -178,24 +178,26 @@ class _SlotTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontSize: 10.5,
-                      color: scheme.onSurfaceVariant,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontSize: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ),
                 if (locked) ...[
                   const SizedBox(width: 2),
-                  const Icon(Icons.lock, size: 10),
+                  const Icon(Icons.lock, size: 12),
                 ] else if (grade != null) ...[
                   const SizedBox(width: 2),
                   Icon(
                     grade!.isCorrect ? Icons.check : Icons.close,
-                    size: 11,
+                    size: 13,
                     color: grade!.isCorrect ? scheme.primary : scheme.error,
                   ),
                 ],
@@ -208,7 +210,7 @@ class _SlotTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(
                 context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ],
         ),

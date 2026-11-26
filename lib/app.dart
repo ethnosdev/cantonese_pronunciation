@@ -203,10 +203,25 @@ class _CantonesePronunciationAppState extends State<CantonesePronunciationApp> {
 
   ThemeData _buildTheme(Brightness brightness) {
     const seed = Color(0xFF0F766E);
-    return ThemeData(
+    final base = ThemeData(
       colorSchemeSeed: seed,
       brightness: brightness,
       useMaterial3: true,
+    );
+    final text = base.textTheme;
+    return base.copyWith(
+      textTheme: text.copyWith(
+        headlineSmall: text.headlineSmall?.copyWith(fontSize: 26),
+        titleLarge: text.titleLarge?.copyWith(fontSize: 24),
+        titleMedium: text.titleMedium?.copyWith(fontSize: 18),
+        titleSmall: text.titleSmall?.copyWith(fontSize: 16),
+        bodyLarge: text.bodyLarge?.copyWith(fontSize: 18),
+        bodyMedium: text.bodyMedium?.copyWith(fontSize: 16),
+        bodySmall: text.bodySmall?.copyWith(fontSize: 14),
+        labelLarge: text.labelLarge?.copyWith(fontSize: 16),
+        labelMedium: text.labelMedium?.copyWith(fontSize: 14),
+        labelSmall: text.labelSmall?.copyWith(fontSize: 13),
+      ),
       cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

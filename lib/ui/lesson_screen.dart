@@ -241,16 +241,19 @@ class _LessonTopBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  controller.isDailyReview
-                      ? DailyReviewSpec.title
-                      : (spec?.isCumulativeReview == true
-                            ? spec!.title
-                            : '${spec?.numberLabel ?? ''} ${spec?.title ?? ''}'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    controller.isDailyReview
+                        ? DailyReviewSpec.title
+                        : (spec?.isCumulativeReview == true
+                              ? spec!.title
+                              : 'Lesson ${spec?.numberLabel ?? ''}'),
+                    maxLines: 1,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -501,15 +504,14 @@ class _SameDifferentTrial extends StatelessWidget {
         const SizedBox(height: 16),
         _TactileChoiceButton(
           label: 'Same',
-          subtitle: 'Matching ${trial.differentProperty?.beginnerLabel ?? ''}',
+          subtitle: '',
           enabled: canAnswer,
           onTap: () => controller.submitSameDifferent(pickedSame: true),
         ),
         const SizedBox(height: 10),
         _TactileChoiceButton(
           label: 'Different',
-          subtitle:
-              'Contrasting ${trial.differentProperty?.beginnerLabel ?? ''}',
+          subtitle: '',
           enabled: canAnswer,
           onTap: () => controller.submitSameDifferent(pickedSame: false),
         ),
@@ -639,8 +641,7 @@ class _ChoiceCardTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final scale = MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 2.0);
-    final minHeight = isGridTile ? 72.0 * scale : 56.0;
-    final stackContour = isGridTile && showContour && option.tone != null;
+    final minHeight = isGridTile ? 82.0 * scale : 64.0;
 
     return Material(
       color: scheme.surface,
@@ -656,65 +657,82 @@ class _ChoiceCardTile extends StatelessWidget {
               border: Border.all(color: scheme.outlineVariant, width: 1.3),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: stackContour
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        option.label,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      PitchContourBox(
-                        tone: option.tone!,
-                        isCheckedTone: option.isCheckedTone,
-                        width: 44,
-                        height: 20,
-                      ),
-                    ],
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              option.label,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                            if (option.subtitle != null &&
-                                option.subtitle!.isNotEmpty)
-                              Text(
-                                option.subtitle!,
-                                textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(color: scheme.onSurfaceVariant),
-                              ),
-                          ],
-                        ),
-                      ),
-                      if (showContour && option.tone != null) ...[
-                        const SizedBox(width: 10),
-                        PitchContourBox(
-                          tone: option.tone!,
-                          isCheckedTone: option.isCheckedTone,
-                          width: 38,
-                          height: 22,
-                        ),
-                      ],
-                    ],
-                  ),
+            child: option.tone != null
+                ? _buildToneContent(scheme)
+                : _buildSoundContent(context, scheme),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildToneContent(ColorScheme scheme) {
+    final tone = option.tone!;
+    final name = Curriculum.tonePlainNames[tone] ?? option.label;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$tone',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            name,
+            maxLines: 1,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        if (showContour) ...[
+          const SizedBox(height: 6),
+          PitchContourBox(
+            tone: tone,
+            isCheckedTone: option.isCheckedTone,
+            width: 44,
+            height: 20,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSoundContent(BuildContext context, ColorScheme scheme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              option.label,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (option.subtitle != null && option.subtitle!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              option.subtitle!,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -745,7 +763,7 @@ class _TactileChoiceButton extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 60),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               border: Border.all(
                 color: enabled
@@ -764,7 +782,7 @@ class _TactileChoiceButton extends StatelessWidget {
                     children: [
                       Text(
                         label,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: enabled ? null : scheme.onSurfaceVariant,
                         ),
@@ -811,23 +829,18 @@ class _SlotAssemblyTrial extends StatelessWidget {
           ),
           const SizedBox(height: 6),
         ],
-        Row(
-          children: [
-            FilledButton.tonalIcon(
-              onPressed: controller.playCurrentPrompt,
-              icon: const Icon(Icons.volume_up, size: 18),
-              label: const Text('Replay'),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                trial.promptText,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          ],
+        Center(
+          child: FilledButton.tonalIcon(
+            onPressed: controller.playCurrentPrompt,
+            icon: const Icon(Icons.volume_up, size: 18),
+            label: const Text('Replay'),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          trial.promptText,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 6),
         AnswerSlotsBar(
@@ -893,10 +906,11 @@ class _FeedbackView extends StatelessWidget {
             child: FeedbackToneWheelPanel(
               result: fb.gradingResult!,
               useBeginnerLabels: true,
-              onPlayTarget: () => controller.playEntry(fb.target),
+              activeClipIndex: controller.activeFeedbackClipIndex,
+              onPlayTarget: () => controller.playComparisonClip(fb.target, 0),
               onPlayGuess: () {
                 if (fb.guessedEntry != null) {
-                  controller.playEntry(fb.guessedEntry!);
+                  controller.playComparisonClip(fb.guessedEntry!, 1);
                 }
               },
               onPlayToneEntry: controller.playEntry,
@@ -963,6 +977,7 @@ class _InlineComparisonFeedbackCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final ok = feedback.isCorrect;
     final isChecked = const {'p', 't', 'k'}.contains(feedback.target.coda);
+    final activeSlot = controller.activeFeedbackClipIndex;
 
     return Card(
       child: Padding(
@@ -1013,7 +1028,9 @@ class _InlineComparisonFeedbackCard extends StatelessWidget {
                 isCheckedTone: isChecked,
                 showContour: feedback.showToneContours,
                 isCorrectHighlight: true,
-                onPlay: () => controller.playEntry(feedback.target),
+                isPlaying: activeSlot == 0,
+                isDimmed: activeSlot != null && activeSlot != 0,
+                onPlay: () => controller.playComparisonClip(feedback.target, 0),
               ),
               if (!ok) ...[
                 const SizedBox(height: 8),
@@ -1041,8 +1058,13 @@ class _InlineComparisonFeedbackCard extends StatelessWidget {
                   ),
                   showContour: feedback.showToneContours,
                   isCorrectHighlight: false,
+                  isPlaying: activeSlot == 1,
+                  isDimmed: activeSlot != null && activeSlot != 1,
                   onPlay: feedback.guessedEntry != null
-                      ? () => controller.playEntry(feedback.guessedEntry!)
+                      ? () => controller.playComparisonClip(
+                          feedback.guessedEntry!,
+                          1,
+                        )
                       : null,
                 ),
               ],
@@ -1071,6 +1093,8 @@ class _ComparisonRow extends StatelessWidget {
     required this.isCheckedTone,
     required this.showContour,
     required this.isCorrectHighlight,
+    this.isPlaying = false,
+    this.isDimmed = false,
     required this.onPlay,
   });
 
@@ -1081,66 +1105,91 @@ class _ComparisonRow extends StatelessWidget {
   final bool isCheckedTone;
   final bool showContour;
   final bool isCorrectHighlight;
+  final bool isPlaying;
+  final bool isDimmed;
   final VoidCallback? onPlay;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final bgColor = isCorrectHighlight
-        ? scheme.primaryContainer.withValues(alpha: 0.35)
-        : scheme.errorContainer.withValues(alpha: 0.35);
+    final baseFill = isCorrectHighlight
+        ? scheme.primaryContainer
+        : scheme.errorContainer;
+    final bgColor = isPlaying ? baseFill : baseFill.withValues(alpha: 0.35);
     final borderColor = isCorrectHighlight ? scheme.primary : scheme.error;
 
-    return Semantics(
-      button: onPlay != null,
-      label: onPlay != null ? 'Play $roleLabel' : null,
-      child: Material(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(10),
-        child: InkWell(
-          onTap: onPlay,
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              border: Border.all(color: borderColor),
-              borderRadius: BorderRadius.circular(10),
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 120),
+      opacity: isDimmed ? 0.52 : 1.0,
+      child: Semantics(
+        button: onPlay != null,
+        label: onPlay != null ? 'Play $roleLabel' : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          decoration: BoxDecoration(
+            color: bgColor,
+            border: Border.all(
+              color: borderColor,
+              width: isPlaying ? 2.5 : 1.0,
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '$roleLabel · $syllable',
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(color: scheme.onSurfaceVariant),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isPlaying
+                ? [
+                    BoxShadow(
+                      color: borderColor.withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              onTap: onPlay,
+              borderRadius: BorderRadius.circular(10),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$roleLabel · $syllable',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
+                          Text(
+                            detailLabel,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
-                      Text(
-                        detailLabel,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    ),
+                    if (showContour && tone != null) ...[
+                      const SizedBox(width: 8),
+                      PitchContourBox(
+                        tone: tone!,
+                        isCheckedTone: isCheckedTone,
+                        color: borderColor,
+                        width: 44,
+                        height: 24,
                       ),
                     ],
-                  ),
+                    if (onPlay != null) ...[
+                      const SizedBox(width: 10),
+                      Icon(Icons.volume_up, color: borderColor),
+                    ],
+                  ],
                 ),
-                if (showContour && tone != null) ...[
-                  const SizedBox(width: 8),
-                  PitchContourBox(
-                    tone: tone!,
-                    isCheckedTone: isCheckedTone,
-                    color: borderColor,
-                    width: 44,
-                    height: 24,
-                  ),
-                ],
-                if (onPlay != null) ...[
-                  const SizedBox(width: 10),
-                  Icon(Icons.volume_up, color: borderColor),
-                ],
-              ],
+              ),
             ),
           ),
         ),

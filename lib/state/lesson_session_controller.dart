@@ -50,6 +50,8 @@ class LessonSessionController extends ChangeNotifier {
   bool _hasPlayedCurrentPair = false;
   int? _activePairClipIndex;
   int? _activeIntroCardIndex;
+  int? _activeFeedbackClipIndex;
+  int _feedbackPlaybackToken = 0;
   int _feedbackSequence = 0;
   String? _audioError;
   bool _disposed = false;
@@ -62,6 +64,7 @@ class LessonSessionController extends ChangeNotifier {
   bool get hasPlayedCurrentPair => _hasPlayedCurrentPair;
   int? get activePairClipIndex => _activePairClipIndex;
   int? get activeIntroCardIndex => _activeIntroCardIndex;
+  int? get activeFeedbackClipIndex => _activeFeedbackClipIndex;
   int get feedbackSequence => _feedbackSequence;
   String? get audioError => _audioError;
 
@@ -248,11 +251,47 @@ class LessonSessionController extends ChangeNotifier {
 
   Future<void> playEntry(SyllableEntry entry) async {
     _audioError = null;
+    _feedbackPlaybackToken++;
+    if (_activeFeedbackClipIndex != null) {
+      _activeFeedbackClipIndex = null;
+      notifyListeners();
+    }
     try {
       final path = await _bundleRepo.resolveAudioFilePath(entry.path);
       await audioService.playFile(path);
     } catch (_) {
       _setAudioError('Could not play audio clip.');
+    }
+  }
+
+  /// Plays one feedback comparison entry (`0` Target, `1` Your Guess) with highlight state.
+  Future<void> playComparisonClip(SyllableEntry entry, int clipIndex) async {
+    _audioError = null;
+    final myToken = ++_feedbackPlaybackToken;
+    try {
+      final path = await _bundleRepo.resolveAudioFilePath(entry.path);
+      await audioService.playSequence(
+        [path],
+        onClipStart: (_) {
+          if (_disposed || myToken != _feedbackPlaybackToken) return;
+          _activeFeedbackClipIndex = clipIndex;
+          notifyListeners();
+        },
+        onClipEnd: (_) {
+          if (_disposed || myToken != _feedbackPlaybackToken) return;
+          _activeFeedbackClipIndex = null;
+          notifyListeners();
+        },
+      );
+    } catch (_) {
+      _setAudioError('Could not play audio clip.');
+    } finally {
+      if (!_disposed &&
+          myToken == _feedbackPlaybackToken &&
+          _activeFeedbackClipIndex != null) {
+        _activeFeedbackClipIndex = null;
+        notifyListeners();
+      }
     }
   }
 
@@ -286,9 +325,11 @@ class LessonSessionController extends ChangeNotifier {
   Future<void> advanceAfterFeedback() async {
     final s = _session;
     if (s == null || s.phase != SessionPhase.feedback) return;
+    _feedbackPlaybackToken++;
     await audioService.stop();
     await audioService.clearTurnSources();
     _activePairClipIndex = null;
+    _activeFeedbackClipIndex = null;
     _audioError = null;
 
     s.advanceAfterFeedback();
@@ -404,6 +445,7 @@ class LessonSessionController extends ChangeNotifier {
           },
         );
       } else {
+        final myToken = ++_feedbackPlaybackToken;
         final targetPath = await _bundleRepo.resolveAudioFilePath(
           fb.target.path,
         );
@@ -417,13 +459,25 @@ class LessonSessionController extends ChangeNotifier {
           paths,
           initialDelay: delay,
           gap: gap,
+          onClipStart: (idx) {
+            if (_disposed || myToken != _feedbackPlaybackToken) return;
+            _activeFeedbackClipIndex = idx;
+            notifyListeners();
+          },
+          onClipEnd: (_) {
+            if (_disposed || myToken != _feedbackPlaybackToken) return;
+            _activeFeedbackClipIndex = null;
+            notifyListeners();
+          },
         );
       }
     } catch (_) {
       _setAudioError('Could not play comparison audio.');
     } finally {
-      if (!_disposed && _activePairClipIndex != null) {
+      if (!_disposed &&
+          (_activePairClipIndex != null || _activeFeedbackClipIndex != null)) {
         _activePairClipIndex = null;
+        _activeFeedbackClipIndex = null;
         notifyListeners();
       }
     }

@@ -149,6 +149,7 @@ class _QuizBody extends StatelessWidget {
           result: controller.lastResult!,
           useBeginnerLabels: true,
           useThreeBeginnerBadges: true,
+          activeClipIndex: controller.activeFeedbackClipIndex,
           onPlayTarget: controller.playTarget,
           onPlayGuess: controller.playGuess,
           onPlayToneEntry: controller.playEntry,
