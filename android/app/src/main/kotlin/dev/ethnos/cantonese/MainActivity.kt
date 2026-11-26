@@ -1,4 +1,4 @@
-package com.example.cantonese_pronunciation
+package dev.ethnos.cantonese
 
 import io.flutter.embedding.android.FlutterActivity
 
