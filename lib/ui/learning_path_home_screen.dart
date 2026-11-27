@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../core/curriculum.dart';
 import '../core/lesson_spec.dart';
 import '../state/learning_path_controller.dart';
+import 'widgets/app_logo.dart';
 
 /// Primary beginner Home screen displaying the 7-unit Learning Path and Drawer.
 class LearningPathHomeScreen extends StatelessWidget {
@@ -34,83 +35,63 @@ class LearningPathHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text('Cantonese Pronunciation', maxLines: 1),
-        ),
-      ),
+      appBar: AppBar(title: const Text('Lessons')),
       drawer: Drawer(
+        width: 260,
         child: SafeArea(
-          child: ListenableBuilder(
-            listenable: controller,
-            builder: (context, _) {
-              return ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                    decoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.45),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Cantonese Pronunciation',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${controller.completedLessonsCount} / '
-                          '${controller.totalLessonsCount} completed',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                    child: Text(
-                      'Free Explore',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: 0.45),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const AppLogo(size: 72),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Cantonese Pronunciation',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.keyboard_alt_outlined),
-                    title: const Text('Practice'),
-                    onTap: () => _navigateFromDrawer(context, onOpenSandbox),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.grid_view_rounded),
-                    title: const Text('Soundboard'),
-                    onTap: () => _navigateFromDrawer(context, onOpenSoundboard),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.bar_chart_rounded),
-                    title: const Text('Statistics'),
-                    onTap: () => _navigateFromDrawer(context, onOpenStats),
-                  ),
-                  const Divider(),
-                  ListTile(
-                    leading: const Icon(Icons.settings_outlined),
-                    title: const Text('Settings'),
-                    onTap: () => _navigateFromDrawer(context, onOpenSettings),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.info_outline),
-                    title: const Text('About & Credits'),
-                    onTap: () => _navigateFromDrawer(context, onOpenAbout),
-                  ),
-                ],
-              );
-            },
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.keyboard_alt_outlined),
+                title: const Text('Practice'),
+                onTap: () => _navigateFromDrawer(context, onOpenSandbox),
+              ),
+              ListTile(
+                leading: const Icon(Icons.grid_view_rounded),
+                title: const Text('Soundboard'),
+                onTap: () => _navigateFromDrawer(context, onOpenSoundboard),
+              ),
+              ListTile(
+                leading: const Icon(Icons.bar_chart_rounded),
+                title: const Text('Statistics'),
+                onTap: () => _navigateFromDrawer(context, onOpenStats),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.settings_outlined),
+                title: const Text('Settings'),
+                onTap: () => _navigateFromDrawer(context, onOpenSettings),
+              ),
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('About'),
+                onTap: () => _navigateFromDrawer(context, onOpenAbout),
+              ),
+            ],
           ),
         ),
       ),
@@ -214,17 +195,36 @@ class _ContinueLessonBanner extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              lesson.isCumulativeReview
-                  ? lesson.title
-                  : 'Lesson ${lesson.numberLabel}: ${lesson.title}',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: scheme.onPrimaryContainer,
-              ),
-            ),
             const SizedBox(height: 8),
+            if (lesson.isCumulativeReview)
+              Text(
+                lesson.title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: scheme.onPrimaryContainer,
+                ),
+              )
+            else ...[
+              Text(
+                'Lesson ${lesson.numberLabel}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: scheme.onPrimaryContainer,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                lesson.title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: scheme.onPrimaryContainer,
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
             LinearProgressIndicator(
               value: totalCount == 0 ? 0 : completedCount / totalCount,
             ),
@@ -235,7 +235,9 @@ class _ContinueLessonBanner extends StatelessWidget {
               label: Text(
                 lesson.isCumulativeReview
                     ? (isCompleted ? 'Replay Review' : 'Start Review')
-                    : (isCompleted ? 'Practice' : 'Continue'),
+                    : (isCompleted
+                          ? 'Practice'
+                          : (completedCount == 0 ? 'Begin' : 'Continue')),
               ),
             ),
           ],

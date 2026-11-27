@@ -9,6 +9,7 @@ import 'package:cantonese_pronunciation/data/progress_repository.dart';
 import 'package:cantonese_pronunciation/data/stats_repository.dart';
 import 'package:cantonese_pronunciation/data/syllable_repository.dart';
 import 'package:cantonese_pronunciation/state/bundle_controller.dart';
+import 'package:cantonese_pronunciation/ui/widgets/app_logo.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -131,14 +132,9 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
     await tester.pumpAndSettle();
 
-    expect(find.text('Cantonese Pronunciation'), findsOneWidget);
-    expect(
-      find.ancestor(
-        of: find.text('Cantonese Pronunciation'),
-        matching: find.byType(FittedBox),
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Lessons'), findsOneWidget);
+    expect(find.text('Lesson 1.2'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget);
     expect(find.text('Daily Review'), findsNothing);
     await tester.scrollUntilVisible(
       find.textContaining('1.1  High Flat (1) vs. Low Falling (4)'),
@@ -155,8 +151,22 @@ void main() {
     // Open top-left drawer and navigate to Settings -> persist Dark theme.
     await tester.tap(find.byTooltip('Open navigation menu'));
     await tester.pumpAndSettle();
+    expect(tester.getSize(find.byType(Drawer)).width, 260);
+    expect(find.byType(AppLogo), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: find.text('Cantonese Pronunciation'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('completed'), findsNothing);
+    expect(find.text('Free Explore'), findsNothing);
     expect(find.text('Practice'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('About'), findsOneWidget);
+    expect(find.text('About & Credits'), findsNothing);
+    expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('Settings'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
@@ -174,6 +184,28 @@ void main() {
     // Pop back to Home -> drawer was already closed cleanly.
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Cantonese Pronunciation'), findsOneWidget);
+    expect(find.text('Lessons'), findsOneWidget);
+  });
+
+  testWidgets('Home banner button shows Begin before first lesson completion', (tester) async {
+    await tester.pumpWidget(
+      CantonesePronunciationApp(
+        initialThemeMode: ThemeMode.system,
+        bundleController: bundleController,
+        syllableRepository: syllableRepo,
+        statsRepository: statsRepo,
+        progressRepository: progressRepo,
+        audioService: audio,
+        clock: () => fixedNow,
+      ),
+    );
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 80)));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lesson 1.1'), findsOneWidget);
+    expect(find.text('High Flat (1) vs. Low Falling (4)'), findsOneWidget);
+    expect(find.text('Begin'), findsOneWidget);
+    expect(find.text('Continue'), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

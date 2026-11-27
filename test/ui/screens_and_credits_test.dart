@@ -9,7 +9,6 @@ import 'package:cantonese_pronunciation/data/syllable_repository.dart';
 import 'package:cantonese_pronunciation/state/bundle_controller.dart';
 import 'package:cantonese_pronunciation/ui/about_credits_screen.dart';
 import 'package:cantonese_pronunciation/ui/app_settings_screen.dart';
-import 'package:cantonese_pronunciation/ui/bundle_setup_screen.dart';
 import 'package:cantonese_pronunciation/ui/soundboard_screen.dart';
 import 'package:cantonese_pronunciation/ui/stats_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
