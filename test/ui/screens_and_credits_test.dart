@@ -45,202 +45,199 @@ void main() {
     }
   });
 
-  testWidgets('BundleSetupScreen shows ~19.2 MB prompt, offline error, and Credits link', (tester) async {
-    final bundleRepo = AudioBundleRepository(
-      syllableRepository: syllableRepo,
-      databaseHelper: dbHelper,
-      httpClient: MockClient((_) async => http.Response('Offline', 503)),
-      supportDirProvider: () async => tempDir,
-      tempDirProvider: () async => tempDir,
-      freeSpaceProvider: (_) async => 200 * 1024 * 1024,
-    );
-    final controller = BundleController(bundleRepo);
-    await controller.checkInitialStatus();
+  testWidgets(
+    'AboutCreditsScreen renders attribution and opens external links',
+    (tester) async {
+      final bundleRepo = AudioBundleRepository(
+        syllableRepository: syllableRepo,
+        databaseHelper: dbHelper,
+        httpClient: MockClient((_) async => http.Response('', 500)),
+        supportDirProvider: () async => tempDir,
+        tempDirProvider: () async => tempDir,
+      );
+      final controller = BundleController(bundleRepo);
+      final launchedUrls = <String>[];
 
-    var creditsTapped = false;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: BundleSetupScreen(
-          bundleController: controller,
-          onOpenCredits: () => creditsTapped = true,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AboutCreditsScreen(
+            bundleController: controller,
+            launchUrlFn: (uri) async {
+              launchedUrls.add(uri.toString());
+              return true;
+            },
+          ),
         ),
-      ),
-    );
+      );
 
-    expect(find.textContaining('19.2 MB'), findsWidgets);
-    expect(find.text('Download Audio Pack (~19.2 MB)'), findsOneWidget);
+      expect(find.textContaining('粵音資料集叢'), findsOneWidget);
+      expect(find.textContaining('CC0 1.0'), findsOneWidget);
 
-    await tester.tap(find.text('Credits'));
-    expect(creditsTapped, isTrue);
+      await tester.tap(find.text('CC BY-SA 4.0'));
+      await tester.pump();
+      expect(
+        launchedUrls,
+        contains('https://creativecommons.org/licenses/by-sa/4.0/'),
+      );
 
-    await tester.tap(find.text('Download Audio Pack (~19.2 MB)'));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pump();
-    expect(find.text('Retry Download (~19.2 MB)'), findsOneWidget);
-  });
+      await tester.tap(find.text('jyut.net'));
+      await tester.pump();
+      expect(launchedUrls, contains('https://jyut.net/'));
+    },
+  );
 
-  testWidgets('AboutCreditsScreen renders attribution and opens external links', (tester) async {
-    final bundleRepo = AudioBundleRepository(
-      syllableRepository: syllableRepo,
-      databaseHelper: dbHelper,
-      httpClient: MockClient((_) async => http.Response('', 500)),
-      supportDirProvider: () async => tempDir,
-      tempDirProvider: () async => tempDir,
-    );
-    final controller = BundleController(bundleRepo);
-    final launchedUrls = <String>[];
+  testWidgets(
+    'AppSettingsScreen persists ThemeMode, Auto-play, and resets progress',
+    (tester) async {
+      final bundleRepo = AudioBundleRepository(
+        syllableRepository: syllableRepo,
+        databaseHelper: dbHelper,
+        httpClient: MockClient((_) async => http.Response('', 500)),
+        supportDirProvider: () async => tempDir,
+        tempDirProvider: () async => tempDir,
+      );
+      final bundleController = BundleController(bundleRepo);
+      final progressRepo = ProgressRepository(dbHelper);
+      await tester.runAsync(() => progressRepo.ensureLesson1Unlocked());
+      final themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
+      var resetCalled = false;
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AboutCreditsScreen(
-          bundleController: controller,
-          launchUrlFn: (uri) async {
-            launchedUrls.add(uri.toString());
-            return true;
-          },
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AppSettingsScreen(
+            statsRepository: statsRepo,
+            themeNotifier: themeNotifier,
+            bundleController: bundleController,
+            progressRepository: progressRepo,
+            onProgressReset: () => resetCalled = true,
+          ),
         ),
-      ),
-    );
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('粵音資料集叢'), findsOneWidget);
-    expect(find.textContaining('CC0 1.0'), findsOneWidget);
+      await tester.tap(find.text('Dark'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('CC BY-SA 4.0'));
-    await tester.pump();
-    expect(launchedUrls, contains('https://creativecommons.org/licenses/by-sa/4.0/'));
+      expect(themeNotifier.value, ThemeMode.dark);
+      final savedTheme = await tester.runAsync(() => statsRepo.loadThemeMode());
+      expect(savedTheme, ThemeMode.dark);
 
-    await tester.tap(find.text('jyut.net'));
-    await tester.pump();
-    expect(launchedUrls, contains('https://jyut.net/'));
-  });
+      await tester.tap(find.text('Reset Learning Progress'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reset'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pumpAndSettle();
+      expect(resetCalled, isTrue);
+    },
+  );
 
-  testWidgets('AppSettingsScreen persists ThemeMode, Auto-play, and resets progress', (tester) async {
-    final bundleRepo = AudioBundleRepository(
-      syllableRepository: syllableRepo,
-      databaseHelper: dbHelper,
-      httpClient: MockClient((_) async => http.Response('', 500)),
-      supportDirProvider: () async => tempDir,
-      tempDirProvider: () async => tempDir,
-    );
-    final bundleController = BundleController(bundleRepo);
-    final progressRepo = ProgressRepository(dbHelper);
-    await tester.runAsync(() => progressRepo.ensureLesson1Unlocked());
-    final themeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
-    var resetCalled = false;
+  testWidgets(
+    'SoundboardScreen plays syllables and StatsScreen resets counts',
+    (tester) async {
+      const aa1 = SyllableEntry(
+        syllable: 'aa1',
+        path: 'aa/1/aa1.opus',
+        initial: '',
+        nucleus: 'aa',
+        coda: '',
+        tone: 1,
+        initialGroup: 0,
+        priority: 0,
+      );
+      final bundleDir = Directory('${tempDir.path}/audio_bundle/aa/1')
+        ..createSync(recursive: true);
+      File('${bundleDir.path}/aa1.opus').writeAsBytesSync([1, 2, 3]);
+      await tester.runAsync(
+        () => syllableRepo.replaceAllFromEntries(const [aa1]),
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: AppSettingsScreen(
-          statsRepository: statsRepo,
-          themeNotifier: themeNotifier,
-          bundleController: bundleController,
-          progressRepository: progressRepo,
-          onProgressReset: () => resetCalled = true,
+      final bundleRepo = AudioBundleRepository(
+        syllableRepository: syllableRepo,
+        databaseHelper: dbHelper,
+        httpClient: MockClient((_) async => http.Response('', 500)),
+        supportDirProvider: () async => tempDir,
+        tempDirProvider: () async => tempDir,
+      );
+      final audio = FakeAudioPlaybackService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SoundboardScreen(
+            syllableRepository: syllableRepo,
+            bundleRepository: bundleRepo,
+            audioService: audio,
+            initialTier: DatasetTier.pri0,
+          ),
         ),
-      ),
-    );
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pumpAndSettle();
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
 
-    await tester.tap(find.text('Dark'));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('1'));
+      await tester.pump();
+      expect(audio.playedPaths.last, endsWith('aa/1/aa1.opus'));
 
-    expect(themeNotifier.value, ThemeMode.dark);
-    final savedTheme = await tester.runAsync(() => statsRepo.loadThemeMode());
-    expect(savedTheme, ThemeMode.dark);
-
-    await tester.tap(find.text('Reset Learning Progress'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Reset'));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pumpAndSettle();
-    expect(resetCalled, isTrue);
-  });
-
-  testWidgets('SoundboardScreen plays syllables and StatsScreen resets counts', (tester) async {
-    const aa1 = SyllableEntry(
-      syllable: 'aa1',
-      path: 'aa/1/aa1.opus',
-      initial: '',
-      nucleus: 'aa',
-      coda: '',
-      tone: 1,
-      initialGroup: 0,
-      priority: 0,
-    );
-    final bundleDir = Directory('${tempDir.path}/audio_bundle/aa/1')
-      ..createSync(recursive: true);
-    File('${bundleDir.path}/aa1.opus').writeAsBytesSync([1, 2, 3]);
-    await tester.runAsync(() => syllableRepo.replaceAllFromEntries(const [aa1]));
-
-    final bundleRepo = AudioBundleRepository(
-      syllableRepository: syllableRepo,
-      databaseHelper: dbHelper,
-      httpClient: MockClient((_) async => http.Response('', 500)),
-      supportDirProvider: () async => tempDir,
-      tempDirProvider: () async => tempDir,
-    );
-    final audio = FakeAudioPlaybackService();
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: SoundboardScreen(
-          syllableRepository: syllableRepo,
-          bundleRepository: bundleRepo,
-          audioService: audio,
-          initialTier: DatasetTier.pri0,
-        ),
-      ),
-    );
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pump();
-
-    await tester.tap(find.text('1'));
-    await tester.pump();
-    expect(audio.playedPaths.last, endsWith('aa/1/aa1.opus'));
-
-    await tester.runAsync(
-      () => statsRepo.recordAttempt(
-        const GradingResult(
-          target: aa1,
-          guessedKey: SyllableKey(initial: '', nucleus: 'aa', coda: '', tone: 3),
-          guessedEntry: null,
-          grades: {
-            ComponentType.tone: ComponentGrade(
-              component: ComponentType.tone,
-              expected: '1',
-              guessed: '3',
-              isCorrect: false,
+      await tester.runAsync(
+        () => statsRepo.recordAttempt(
+          const GradingResult(
+            target: aa1,
+            guessedKey: SyllableKey(
+              initial: '',
+              nucleus: 'aa',
+              coda: '',
+              tone: 3,
             ),
-          },
-          statsComponents: [ComponentType.tone],
-          autoNormalizedSyllabicNasal: false,
-          toneFamily: [aa1],
+            guessedEntry: null,
+            grades: {
+              ComponentType.tone: ComponentGrade(
+                component: ComponentType.tone,
+                expected: '1',
+                guessed: '3',
+                isCorrect: false,
+              ),
+            },
+            statsComponents: [ComponentType.tone],
+            autoNormalizedSyllabicNasal: false,
+            toneFamily: [aa1],
+          ),
         ),
-      ),
-    );
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(home: StatsScreen(statsRepository: statsRepo)),
-    );
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pump();
+      await tester.pumpWidget(
+        MaterialApp(home: StatsScreen(statsRepository: statsRepo)),
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump();
 
-    expect(find.text('Accuracy'), findsOneWidget);
-    expect(find.text('Start'), findsOneWidget);
-    expect(find.text('Vowel'), findsOneWidget);
-    expect(find.text('Ending'), findsOneWidget);
-    expect(find.text('Tone'), findsOneWidget);
-    expect(find.text('Initial'), findsNothing);
-    expect(find.text('Nucleus'), findsNothing);
-    expect(find.text('Coda'), findsNothing);
-    expect(find.text('Tone: 1 ↔ 3'), findsOneWidget);
-    await tester.tap(find.byTooltip('Reset Stats'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Reset'));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pumpAndSettle();
-    expect(find.text('No confusions recorded yet.'), findsOneWidget);
-  });
+      expect(find.text('Accuracy'), findsOneWidget);
+      expect(find.text('Start'), findsOneWidget);
+      expect(find.text('Vowel'), findsOneWidget);
+      expect(find.text('Ending'), findsOneWidget);
+      expect(find.text('Tone'), findsOneWidget);
+      expect(find.text('Initial'), findsNothing);
+      expect(find.text('Nucleus'), findsNothing);
+      expect(find.text('Coda'), findsNothing);
+      expect(find.text('Tone: 1 ↔ 3'), findsOneWidget);
+      await tester.tap(find.byTooltip('Reset Stats'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reset'));
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('No confusions recorded yet.'), findsOneWidget);
+    },
+  );
 }

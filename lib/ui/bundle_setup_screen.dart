@@ -56,15 +56,14 @@ class BundleSetupScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Offline Cantonese Audio Required',
+                      'Download Required',
                       style: Theme.of(context).textTheme.headlineSmall,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'This app downloads 5,358 recorded Cantonese syllable '
-                      'clips (~19.2 MB, CC BY-SA 4.0 by 「粵音資料集叢」) once so '
-                      'practice works offline.',
+                      'This app requires a 19 MB audio pack recorded by a native Cantonese speaker. '
+                      '粵音資料集叢 has kindly made these recordings available under a CC BY-SA 4.0 license.',
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
@@ -87,9 +86,9 @@ class BundleSetupScreen extends StatelessWidget {
                             child: SelectableText(
                               bundleController.errorMessage!,
                               style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onErrorContainer,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onErrorContainer,
                               ),
                             ),
                           ),
@@ -103,8 +102,8 @@ class BundleSetupScreen extends StatelessWidget {
                       label: Text(
                         status == BundleStatus.error ||
                                 status == BundleStatus.corrupted
-                            ? 'Retry Download (~19.2 MB)'
-                            : 'Download Audio Pack (~19.2 MB)',
+                            ? 'Retry Download'
+                            : 'Download',
                       ),
                     ),
                   ],
