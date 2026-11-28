@@ -45,6 +45,7 @@ class LessonSessionController extends ChangeNotifier {
   LessonSession? _session;
   GuidedConstraintEngine _constraintEngine = GuidedConstraintEngine(const []);
   DraftInputState _draft = const DraftInputState();
+  PracticeStep _activeStep = PracticeStep.initial;
   bool _isLoading = true;
   bool _autoPlay = true;
   bool _hasPlayedCurrentPair = false;
@@ -60,6 +61,23 @@ class LessonSessionController extends ChangeNotifier {
   bool get isDailyReview => lessonSpec == null;
   LessonSession? get session => _session;
   DraftInputState get draft => _draft;
+  PracticeStep get activeStep => _activeStep;
+  String? get selectedEnding =>
+      ThreeStepAssemblyHelper.selectedEndingFor(_draft);
+  Set<PracticeStep> get lockedSteps {
+    final trial = currentTrial;
+    if (trial == null || trial.format != ExerciseFormat.slotAssembly) {
+      return const {};
+    }
+    final locked = trial.slotMask?.lockedComponents ?? const {};
+    return {
+      if (locked.contains(ComponentType.initial)) PracticeStep.initial,
+      if (locked.contains(ComponentType.nucleus) ||
+          locked.contains(ComponentType.coda))
+        PracticeStep.syllableFinal,
+      if (locked.contains(ComponentType.tone)) PracticeStep.tone,
+    };
+  }
   bool get autoPlay => _autoPlay;
   bool get hasPlayedCurrentPair => _hasPlayedCurrentPair;
   int? get activePairClipIndex => _activePairClipIndex;
@@ -91,14 +109,14 @@ class LessonSessionController extends ChangeNotifier {
       return false;
     }
     final mask = trial.slotMask ?? const SlotMask();
-    if (mask.isGuided) {
-      return _constraintEngine.canSubmit(
-        _draft,
-        const AllFilter(),
-        preventToneLeaking: _preventToneLeaking(trial),
-      );
-    }
-    return _draft.canSubmit;
+    return ThreeStepAssemblyHelper.canSubmitAssembly(
+      draft: _draft,
+      engine: _constraintEngine,
+      filter: const AllFilter(),
+      lockedSteps: lockedSteps,
+      isGuided: mask.isGuided,
+      preventToneLeaking: _preventToneLeaking(trial),
+    );
   }
 
   Future<void> initialize() async {
@@ -364,61 +382,124 @@ class LessonSessionController extends ChangeNotifier {
     }
   }
 
-  // ---------------- Unit 7 Slot Assembly Input ----------------
+  // ---------------- Unit 7 3-Step Slot Assembly Input ----------------
 
-  Set<String> allowedInitials() => _constraintEngine.allowedInitials(_draft);
-  Set<String> allowedNuclei() => _constraintEngine.allowedNuclei(_draft);
-  Set<String> allowedCodas() => _constraintEngine.allowedCodas(_draft);
+  Set<String> allowedStarts() {
+    final trial = currentTrial;
+    if (trial == null ||
+        trial.format != ExerciseFormat.slotAssembly ||
+        !(trial.slotMask?.isGuided ?? true)) {
+      return const {};
+    }
+    return _constraintEngine.allowedStarts(
+      lockedEnding: lockedSteps.contains(PracticeStep.syllableFinal)
+          ? selectedEnding
+          : null,
+    );
+  }
+
+  Set<String> allowedEndings() {
+    final trial = currentTrial;
+    if (trial == null ||
+        trial.format != ExerciseFormat.slotAssembly ||
+        !(trial.slotMask?.isGuided ?? true)) {
+      return const {};
+    }
+    return _constraintEngine.allowedEndings(
+      lockedSteps.contains(PracticeStep.initial) || _draft.initial != null
+          ? _draft.initial
+          : null,
+    );
+  }
+
   Set<int> allowedTones() {
     final trial = currentTrial;
+    if (trial == null ||
+        trial.format != ExerciseFormat.slotAssembly ||
+        !(trial.slotMask?.isGuided ?? true)) {
+      return const {1, 2, 3, 4, 5, 6};
+    }
     return _constraintEngine.allowedTones(
       _draft,
       const AllFilter(),
-      preventToneLeaking: trial != null && _preventToneLeaking(trial),
+      preventToneLeaking: _preventToneLeaking(trial),
     );
   }
 
-  void toggleInitial(String value) {
-    if (_isComponentLocked(ComponentType.initial)) return;
-    _draft = _draft.copyWith(
-      initial: _draft.initial == value ? null : value,
-    );
-    notifyListeners();
-  }
-
-  void toggleNucleus(String value) {
-    if (_isComponentLocked(ComponentType.nucleus)) return;
-    _draft = _draft.copyWith(
-      nucleus: _draft.nucleus == value ? null : value,
-    );
-    notifyListeners();
-  }
-
-  void toggleCoda(String value) {
-    if (_isComponentLocked(ComponentType.coda)) return;
-    _draft = _draft.copyWith(coda: _draft.coda == value ? null : value);
-    notifyListeners();
-  }
-
-  void toggleTone(int value) {
-    if (_isComponentLocked(ComponentType.tone)) return;
-    _draft = _draft.copyWith(tone: _draft.tone == value ? null : value);
-    notifyListeners();
-  }
-
-  void clearSlot(ComponentType component) {
-    if (_isComponentLocked(component)) return;
-    switch (component) {
-      case ComponentType.initial:
-        _draft = _draft.copyWith(initial: null);
-      case ComponentType.nucleus:
-        _draft = _draft.copyWith(nucleus: null);
-      case ComponentType.coda:
-        _draft = _draft.copyWith(coda: null);
-      case ComponentType.tone:
-        _draft = _draft.copyWith(tone: null);
+  void setActiveStep(PracticeStep step) {
+    if (phase != SessionPhase.trial ||
+        currentTrial?.format != ExerciseFormat.slotAssembly ||
+        lockedSteps.contains(step)) {
+      return;
     }
+    _activeStep = step;
     notifyListeners();
+  }
+
+  void selectStart(String initial) {
+    final trial = currentTrial;
+    if (phase != SessionPhase.trial ||
+        trial == null ||
+        trial.format != ExerciseFormat.slotAssembly ||
+        lockedSteps.contains(PracticeStep.initial)) {
+      return;
+    }
+    final transition = ThreeStepAssemblyHelper.selectStart(
+      draft: _draft,
+      currentStep: _activeStep,
+      initial: initial,
+      engine: _constraintEngine,
+      lockedSteps: lockedSteps,
+      isGuided: trial.slotMask?.isGuided ?? true,
+    );
+    _draft = transition.draft;
+    _activeStep = transition.nextStep;
+    notifyListeners();
+  }
+
+  void selectEnding(String finalStr) {
+    final trial = currentTrial;
+    if (phase != SessionPhase.trial ||
+        trial == null ||
+        trial.format != ExerciseFormat.slotAssembly ||
+        lockedSteps.contains(PracticeStep.syllableFinal)) {
+      return;
+    }
+    final transition = ThreeStepAssemblyHelper.selectEnding(
+      draft: _draft,
+      currentStep: _activeStep,
+      finalStr: finalStr,
+      lockedSteps: lockedSteps,
+    );
+    _draft = transition.draft;
+    _activeStep = transition.nextStep;
+    notifyListeners();
+  }
+
+  Future<void> selectToneAndSubmit(int tone) async {
+    final trial = currentTrial;
+    if (phase != SessionPhase.trial ||
+        trial == null ||
+        trial.format != ExerciseFormat.slotAssembly) {
+      return;
+    }
+    final transition = ThreeStepAssemblyHelper.selectToneAndSubmit(
+      draft: _draft,
+      currentStep: _activeStep,
+      tone: tone,
+      engine: _constraintEngine,
+      filter: const AllFilter(),
+      lockedSteps: lockedSteps,
+      isGuided: trial.slotMask?.isGuided ?? true,
+      preventToneLeaking: _preventToneLeaking(trial),
+    );
+    _draft = transition.draft;
+    _activeStep = transition.nextStep;
+    if (transition.shouldSubmit) {
+      await submitAssembly();
+    } else {
+      notifyListeners();
+    }
   }
 
   Future<void> _playFeedbackAudio(TrialFeedback fb) async {
@@ -512,6 +593,7 @@ class LessonSessionController extends ChangeNotifier {
     final trial = currentTrial;
     if (trial == null || trial.format != ExerciseFormat.slotAssembly) {
       _draft = const DraftInputState();
+      _activeStep = PracticeStep.initial;
       return;
     }
     final mask = trial.slotMask ?? const SlotMask();
@@ -529,14 +611,7 @@ class LessonSessionController extends ChangeNotifier {
           ? trial.target.tone
           : null,
     );
-  }
-
-  bool _isComponentLocked(ComponentType component) {
-    final trial = currentTrial;
-    if (trial == null || trial.format != ExerciseFormat.slotAssembly) {
-      return false;
-    }
-    return trial.slotMask?.lockedComponents.contains(component) ?? false;
+    _activeStep = ThreeStepAssemblyHelper.firstUnlockedStep(lockedSteps);
   }
 
   bool _preventToneLeaking(LessonTrial trial) {

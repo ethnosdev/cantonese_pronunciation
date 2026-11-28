@@ -172,25 +172,25 @@ void main() {
       expect(find.byTooltip('Practice options'), findsOneWidget);
       expect(find.text('Play'), findsOneWidget);
       expect(find.byKey(const ValueKey('practice-slot-start')), findsOneWidget);
-      expect(find.text('Start'), findsOneWidget);
+      expect(find.text('Initial consonant'), findsOneWidget);
       expect(find.text('Submit'), findsNothing);
       expect(tester.takeException(), isNull);
     }
 
-    // Verify Step 2 (all 57 Endings, 6 per row) fits on a 360x640 screen without scrolling.
+    // Verify Step 2 (all 57 Finals, 6 per row) fits on a 360x640 screen without scrolling.
     await pumpQuizAtSize(tester, const Size(360, 640));
     await tester.tap(find.text('b'));
     await tester.pumpAndSettle();
-    expect(find.text('Ending'), findsOneWidget);
+    expect(find.text('Final'), findsOneWidget);
     expect(tester.getBottomRight(find.text('yut')).dy, lessThanOrEqualTo(640));
     expect(tester.takeException(), isNull);
 
-    // Tapping the Start segment in the progressive syllable jumps back to Step 1.
+    // Tapping the Initial segment in the progressive syllable jumps back to Step 1.
     await tester.tap(find.byKey(const ValueKey('practice-slot-start')));
     await tester.pumpAndSettle();
-    expect(find.text('Start'), findsOneWidget);
+    expect(find.text('Initial consonant'), findsOneWidget);
 
-    // Complete 3-step auto-advancing entry: Start ('b') -> Ending ('aap') -> Tone ('High Flat').
+    // Complete 3-step auto-advancing entry: Initial ('b') -> Final ('aap') -> Tone ('High Level').
     await tester.tap(find.text('b').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('aap'));
@@ -198,7 +198,7 @@ void main() {
     expect(find.text('Tone'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('High Flat'));
+    await tester.tap(find.text('High Level'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
 
@@ -206,8 +206,8 @@ void main() {
       find.text('This combination (baap1) does not exist in the dataset.'),
       findsOneWidget,
     );
-    expect(find.text('Start: b ✓'), findsOneWidget);
-    expect(find.text('Ending: aap → aa ✗'), findsOneWidget);
+    expect(find.text('Initial: b ✓'), findsOneWidget);
+    expect(find.text('Final: aap → aa ✗'), findsOneWidget);
     expect(find.text('Tone: 1 ✓'), findsOneWidget);
     expect(find.text('Next'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -223,7 +223,7 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
     expect(audio.clearTurnCalls, greaterThan(priorClears));
-    expect(find.text('Start'), findsOneWidget);
+    expect(find.text('Initial consonant'), findsOneWidget);
   });
 
   testWidgets('supports Space replay, Escape clear, and three-dot menu options', (tester) async {
@@ -237,12 +237,12 @@ void main() {
     await tester.tap(find.text('b'));
     await tester.pumpAndSettle();
     expect(controller.draft.initial, 'b');
-    expect(find.text('Ending'), findsOneWidget);
+    expect(find.text('Final'), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
     expect(controller.draft.initial, isNull);
-    expect(find.text('Start'), findsOneWidget);
+    expect(find.text('Initial consonant'), findsOneWidget);
 
     // Enable Guided mode via the top-right three-dot menu.
     await tester.tap(find.byTooltip('Practice options'));
@@ -252,12 +252,12 @@ void main() {
 
     await tester.tap(find.text('b'));
     await tester.pumpAndSettle();
-    expect(find.text('Ending'), findsOneWidget);
+    expect(find.text('Final'), findsOneWidget);
 
     // Unrecorded 'aap' is dimmed/disabled in Guided mode so tapping stays on Step 2.
     await tester.tap(find.text('aap'));
     await tester.pumpAndSettle();
-    expect(find.text('Ending'), findsOneWidget);
+    expect(find.text('Final'), findsOneWidget);
 
     await tester.tap(find.text('aa'));
     await tester.pumpAndSettle();
@@ -269,6 +269,7 @@ void main() {
     await tester.tap(find.text('Focus: All Syllables'));
     await tester.pumpAndSettle();
     expect(find.text('Focus Filter'), findsOneWidget);
+    expect(find.text('Initials: None / ng / h'), findsOneWidget);
     await tester.tap(find.text('Tones Only'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();

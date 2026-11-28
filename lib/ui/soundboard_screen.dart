@@ -97,7 +97,8 @@ class _SoundboardScreenState extends State<SoundboardScreen> {
                       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
                       child: Text(
                         'Tap any syllable to compare tones and initials. '
-                        'Hearing subtle contrasts trains accurate pronunciation.',
+                        'Hearing subtle contrasts trains accurate pronunciation. '
+                        '∅ = no initial.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -169,10 +170,18 @@ class _SoundboardScreenState extends State<SoundboardScreen> {
                               children: [
                                 SizedBox(
                                   width: 36,
-                                  child: Text(
-                                    ini.isEmpty ? '∅' : ini,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      ini.isEmpty
+                                          ? ComponentType.emptySymbol
+                                          : ini,
+                                      semanticsLabel:
+                                          ini.isEmpty ? 'No initial' : null,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),

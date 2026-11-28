@@ -95,9 +95,11 @@ class _StatsScreenState extends State<StatsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(item.component.beginnerLabel),
+                                Expanded(
+                                  child: Text(item.component.fullLabel),
+                                ),
+                                const SizedBox(width: 8),
                                 Text(
                                   item.total == 0
                                       ? 'No data'
@@ -127,7 +129,7 @@ class _StatsScreenState extends State<StatsScreen> {
                           dense: true,
                           contentPadding: EdgeInsets.zero,
                           title: Text(
-                            '${c.component.beginnerLabel}: '
+                            '${c.component.shortLabel}: '
                             '${_token(c.expected)} ↔ ${_token(c.guessed)}',
                           ),
                           trailing: Text('${c.count}×'),
@@ -139,5 +141,6 @@ class _StatsScreenState extends State<StatsScreen> {
     );
   }
 
-  String _token(String raw) => raw.isEmpty ? '∅' : raw;
+  String _token(String raw) =>
+      raw.isEmpty ? ComponentType.noneLabel : raw;
 }

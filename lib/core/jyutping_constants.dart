@@ -88,17 +88,7 @@ class JyutpingConstants {
   /// 6 Cantonese tones in LSHK Jyutping.
   static const List<int> tones = [1, 2, 3, 4, 5, 6];
 
-  /// Chao pitch contour numbers displayed on tone buttons.
-  static const Map<int, String> tonePitchLabels = {
-    1: '55',
-    2: '35',
-    3: '33',
-    4: '21',
-    5: '23',
-    6: '22',
-  };
-
-  /// All 57 attested Cantonese Finals (Endings) grouped by base vowel / hum.
+  /// All 57 attested Cantonese Finals grouped by base vowel / syllabic nasal.
   static const List<FinalGroup> finalGroups = [
     FinalGroup(
       label: 'aa',
@@ -127,10 +117,10 @@ class JyutpingConstants {
       finals: ['u', 'ui', 'un', 'ung', 'ut', 'uk'],
     ),
     FinalGroup(label: 'yu', finals: ['yu', 'yun', 'yut']),
-    FinalGroup(label: 'Hums', finals: ['m', 'ng']),
+    FinalGroup(label: 'Syllabic nasals', finals: ['m', 'ng']),
   ];
 
-  /// Splits a Cantonese final (Ending) such as `aam` or `ng` into `(nucleus, coda)`.
+  /// Splits a Cantonese Final such as `aam` or `ng` into `(nucleus, coda)`.
   static (String nucleus, String coda) splitFinal(String finalStr) {
     if (finalStr == 'm' || finalStr == 'ng') {
       return ('', finalStr);
@@ -172,7 +162,7 @@ enum ConfusableInitialGroup {
   bp('b / p', {'b', 'p'}),
   dt('d / t', {'d', 't'}),
   nl('n / l', {'n', 'l'}),
-  zeroNgH('∅ / ng / h', {'', 'ng', 'h'});
+  zeroNgH('None / ng / h', {'', 'ng', 'h'});
 
   const ConfusableInitialGroup(this.label, this.initials);
 

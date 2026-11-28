@@ -1,3 +1,4 @@
+import 'jyutping_constants.dart';
 import 'syllable_models.dart';
 
 /// Computes dynamically enabled keys in Guided Mode from the active pool.
@@ -6,59 +7,24 @@ class GuidedConstraintEngine {
 
   final List<SyllableEntry> pool;
 
-  /// Allowed initial tokens given currently selected nucleus, coda, and tone.
-  Set<String> allowedInitials(DraftInputState draft) {
+  /// Allowed 3-step initials; filters by [lockedEnding] only when Final is locked.
+  Set<String> allowedStarts({String? lockedEnding}) {
     final result = <String>{};
     for (final entry in pool) {
-      if (_matchesOther(
-        entry,
-        nucleus: draft.nucleus,
-        coda: draft.coda,
-        tone: draft.tone,
-      )) {
-        result.add(entry.initial);
-        // Allow learners to tap m/ng in Initial when syllabic nasal exists.
-        if (entry.nucleus.isEmpty &&
-            entry.initial.isEmpty &&
-            (entry.coda == 'm' || entry.coda == 'ng') &&
-            draft.nucleus == null &&
-            draft.coda == null) {
-          result.add(entry.coda);
-        }
+      if (lockedEnding != null && '${entry.nucleus}${entry.coda}' != lockedEnding) {
+        continue;
       }
+      result.add(entry.initial);
     }
     return result;
   }
 
-  /// Allowed vowel nuclei given currently selected initial, coda, and tone.
-  Set<String> allowedNuclei(DraftInputState draft) {
+  /// Allowed 57-Final strings given currently selected [initial].
+  Set<String> allowedEndings(String? initial) {
     final result = <String>{};
     for (final entry in pool) {
-      if (entry.nucleus.isEmpty) continue;
-      if (_matchesOther(
-        entry,
-        initial: draft.initial,
-        coda: draft.coda,
-        tone: draft.tone,
-      )) {
-        result.add(entry.nucleus);
-      }
-    }
-    return result;
-  }
-
-  /// Allowed codas given currently selected initial, nucleus, and tone.
-  Set<String> allowedCodas(DraftInputState draft) {
-    final result = <String>{};
-    for (final entry in pool) {
-      if (_matchesOther(
-        entry,
-        initial: draft.initial,
-        nucleus: draft.nucleus,
-        tone: draft.tone,
-      )) {
-        result.add(entry.coda);
-      }
+      if (initial != null && entry.initial != initial) continue;
+      result.add('${entry.nucleus}${entry.coda}');
     }
     return result;
   }
@@ -124,5 +90,175 @@ class GuidedConstraintEngine {
     if (coda != null && entry.coda != coda) return false;
     if (tone != null && entry.tone != tone) return false;
     return true;
+  }
+}
+
+/// Outcome of a 3-step transition helper action.
+class ThreeStepTransition {
+  const ThreeStepTransition({
+    required this.draft,
+    required this.nextStep,
+    this.shouldSubmit = false,
+  });
+
+  final DraftInputState draft;
+  final PracticeStep nextStep;
+  final bool shouldSubmit;
+}
+
+/// Shared 3-step transition and validation logic for Practice and Unit 7 lessons.
+class ThreeStepAssemblyHelper {
+  const ThreeStepAssemblyHelper._();
+
+  static String? selectedEndingFor(DraftInputState draft) =>
+      draft.nucleus == null ? null : '${draft.nucleus}${draft.coda ?? ''}';
+
+  static PracticeStep firstUnlockedStep(Set<PracticeStep> lockedSteps) {
+    for (final step in PracticeStep.values) {
+      if (!lockedSteps.contains(step)) return step;
+    }
+    return PracticeStep.tone;
+  }
+
+  static ThreeStepTransition selectStart({
+    required DraftInputState draft,
+    required PracticeStep currentStep,
+    required String initial,
+    required GuidedConstraintEngine engine,
+    required Set<PracticeStep> lockedSteps,
+    required bool isGuided,
+  }) {
+    if (lockedSteps.contains(PracticeStep.initial)) {
+      return ThreeStepTransition(draft: draft, nextStep: currentStep);
+    }
+    var nextNucleus = draft.nucleus;
+    var nextCoda = draft.coda;
+    if (!lockedSteps.contains(PracticeStep.syllableFinal) &&
+        nextNucleus != null &&
+        isGuided) {
+      final ending = '$nextNucleus${nextCoda ?? ''}';
+      final valid = engine.pool.any(
+        (e) => e.initial == initial && '${e.nucleus}${e.coda}' == ending,
+      );
+      if (!valid) {
+        nextNucleus = null;
+        nextCoda = null;
+      }
+    }
+    final nextDraft = draft.copyWith(
+      initial: initial,
+      nucleus: nextNucleus,
+      coda: nextCoda,
+      tone: lockedSteps.contains(PracticeStep.tone) ? draft.tone : null,
+    );
+    final PracticeStep nextStep;
+    if (!lockedSteps.contains(PracticeStep.syllableFinal) &&
+        nextNucleus == null) {
+      nextStep = PracticeStep.syllableFinal;
+    } else if (!lockedSteps.contains(PracticeStep.tone)) {
+      nextStep = PracticeStep.tone;
+    } else {
+      nextStep = currentStep;
+    }
+    return ThreeStepTransition(draft: nextDraft, nextStep: nextStep);
+  }
+
+  static ThreeStepTransition selectEnding({
+    required DraftInputState draft,
+    required PracticeStep currentStep,
+    required String finalStr,
+    required Set<PracticeStep> lockedSteps,
+  }) {
+    if (lockedSteps.contains(PracticeStep.syllableFinal)) {
+      return ThreeStepTransition(draft: draft, nextStep: currentStep);
+    }
+    final (nucleus, coda) = JyutpingConstants.splitFinal(finalStr);
+    final nextDraft = draft.copyWith(
+      nucleus: nucleus,
+      coda: coda,
+      tone: lockedSteps.contains(PracticeStep.tone) ? draft.tone : null,
+    );
+    final PracticeStep nextStep;
+    if (!lockedSteps.contains(PracticeStep.initial) && draft.initial == null) {
+      nextStep = PracticeStep.initial;
+    } else if (!lockedSteps.contains(PracticeStep.tone)) {
+      nextStep = PracticeStep.tone;
+    } else {
+      nextStep = currentStep;
+    }
+    return ThreeStepTransition(draft: nextDraft, nextStep: nextStep);
+  }
+
+  static bool canSubmitAssembly({
+    required DraftInputState draft,
+    required GuidedConstraintEngine engine,
+    required FocusFilter filter,
+    required Set<PracticeStep> lockedSteps,
+    required bool isGuided,
+    required bool preventToneLeaking,
+  }) {
+    if (!lockedSteps.contains(PracticeStep.initial) && draft.initial == null) {
+      return false;
+    }
+    if (!lockedSteps.contains(PracticeStep.syllableFinal) &&
+        draft.nucleus == null &&
+        !draft.hasAutoNormalizedSyllabicNasal) {
+      return false;
+    }
+    if (!lockedSteps.contains(PracticeStep.tone) && draft.tone == null) {
+      return false;
+    }
+    if (isGuided) {
+      return engine.canSubmit(
+        draft,
+        filter,
+        preventToneLeaking: preventToneLeaking,
+      );
+    }
+    return draft.canSubmit;
+  }
+
+  static ThreeStepTransition selectToneAndSubmit({
+    required DraftInputState draft,
+    required PracticeStep currentStep,
+    required int tone,
+    required GuidedConstraintEngine engine,
+    required FocusFilter filter,
+    required Set<PracticeStep> lockedSteps,
+    required bool isGuided,
+    required bool preventToneLeaking,
+  }) {
+    if (!lockedSteps.contains(PracticeStep.initial) && draft.initial == null) {
+      return ThreeStepTransition(
+        draft: draft,
+        nextStep: PracticeStep.initial,
+        shouldSubmit: false,
+      );
+    }
+    if (!lockedSteps.contains(PracticeStep.syllableFinal) &&
+        draft.nucleus == null &&
+        !draft.hasAutoNormalizedSyllabicNasal) {
+      return ThreeStepTransition(
+        draft: draft,
+        nextStep: PracticeStep.syllableFinal,
+        shouldSubmit: false,
+      );
+    }
+    final nextDraft = lockedSteps.contains(PracticeStep.tone)
+        ? draft
+        : draft.copyWith(tone: tone);
+    final ready = canSubmitAssembly(
+      draft: nextDraft,
+      engine: engine,
+      filter: filter,
+      lockedSteps: lockedSteps,
+      isGuided: isGuided,
+      preventToneLeaking: preventToneLeaking,
+    );
+    return ThreeStepTransition(
+      draft: nextDraft,
+      nextStep: currentStep,
+      shouldSubmit: ready,
+    );
   }
 }

@@ -136,17 +136,33 @@ void main() {
     expect(find.text('Lesson 1.2'), findsOneWidget);
     expect(find.text('Continue'), findsOneWidget);
     expect(find.text('Daily Review'), findsNothing);
+    expect(
+      find.text('Hear high, rising, mid, and low pitch shapes'),
+      findsNothing,
+    );
     await tester.scrollUntilVisible(
-      find.textContaining('1.1  High Flat (1) vs. Low Falling (4)'),
+      find.textContaining('1.1  High (1) & Low (4)'),
       120,
     );
-    expect(find.textContaining('1.1  High Flat (1) vs. Low Falling (4)'), findsOneWidget);
+    expect(find.textContaining('1.1  High (1) & Low (4)'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Units 1–2 Review'),
       180,
     );
     expect(find.text('Units 1–2 Review'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.textContaining('3.4  Six-Tone Check'),
+      200,
+    );
+    expect(find.textContaining('3.4  Six-Tone Check'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Full Syllables'),
+      300,
+    );
+    expect(find.text('Full Syllables'), findsOneWidget);
+    expect(find.text('Multi-Slot Assembly to Full Mastery'), findsNothing);
     expect(tester.takeException(), isNull);
+    await tester.scrollUntilVisible(find.text('Lesson 1.2'), -300);
 
     // Open top-left drawer and navigate to Settings -> persist Dark theme.
     await tester.tap(find.byTooltip('Open navigation menu'));
@@ -203,7 +219,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Lesson 1.1'), findsOneWidget);
-    expect(find.text('High Flat (1) vs. Low Falling (4)'), findsOneWidget);
+    expect(find.text('High (1) & Low (4)'), findsOneWidget);
     expect(find.text('Begin'), findsOneWidget);
     expect(find.text('Continue'), findsNothing);
     expect(tester.takeException(), isNull);

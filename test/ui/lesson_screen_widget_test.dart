@@ -24,7 +24,7 @@ import 'quiz_screen_widget_test.dart';
 
 List<SyllableEntry> _lessonCatalog() {
   final list = <SyllableEntry>[];
-  for (final i in const ['b', 'd', 's']) {
+  for (final i in const ['b', 'p', 'd', 's', '']) {
     for (final t in const [1, 2, 3, 4, 5, 6]) {
       final syl = '${i}aa$t';
       list.add(
@@ -131,7 +131,7 @@ void main() {
 
     // Intro visible, Trial 1 has NOT auto-played.
     expect(find.text('Start Practice'), findsOneWidget);
-    expect(find.text('1 · High Flat'), findsOneWidget);
+    expect(find.text('1 · High Level'), findsOneWidget);
     expect(find.byType(PitchContourBox), findsNWidgets(2));
     expect(audio.playedPaths, isEmpty);
     expect(tester.takeException(), isNull);
@@ -140,7 +140,7 @@ void main() {
     await tester.ensureVisible(find.text('Start Practice'));
     await tester.tap(find.text('Start Practice'));
     await tester.pumpAndSettle();
-    expect(find.text('Same Tone?'), findsOneWidget);
+    expect(find.text('Same tone?'), findsOneWidget);
     expect(ctrl.canSubmitSameDifferent, isFalse);
 
     await tester.ensureVisible(find.text('Play Pair'));
@@ -167,12 +167,12 @@ void main() {
     }
 
     // Core choice cards: curves visible, NO Chao digits '55'/'21'.
-    expect(find.text('High Flat'), findsOneWidget);
+    expect(find.text('High Level'), findsOneWidget);
     expect(find.text('55'), findsNothing);
     expect(find.byType(PitchContourBox), findsNWidgets(2));
 
     // Close before submitting any graded item pops without dialog.
-    await tester.tap(find.text('High Flat'));
+    await tester.tap(find.text('High Level'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
     expect(ctrl.submittedCount, 1);
@@ -188,25 +188,25 @@ void main() {
     addTearDown(ctrl.dispose);
 
     // 6 choices rendered with curves OFF on buttons and uniform button height.
-    expect(find.text('High Flat'), findsOneWidget);
-    expect(find.text('Low Flat'), findsOneWidget);
+    expect(find.text('High Level'), findsOneWidget);
+    expect(find.text('Low Level'), findsOneWidget);
     expect(find.byType(PitchContourBox), findsNothing);
     expect(tester.takeException(), isNull);
 
     final choiceHeights = [
       for (final label in const [
-        'High Flat',
+        'High Level',
         'High Rising',
-        'Mid Flat',
+        'Mid Level',
         'Low Falling',
         'Low Rising',
-        'Low Flat',
+        'Low Level',
       ])
         tester.getSize(find.ancestor(of: find.text(label), matching: find.byType(Material)).first).height,
     ];
     expect(choiceHeights.toSet().length, 1);
 
-    await tester.tap(find.text('High Flat'));
+    await tester.tap(find.text('High Level'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
 
@@ -223,33 +223,71 @@ void main() {
     expect(audio.playedPaths.length, greaterThan(playsBeforeTap));
   });
 
-  testWidgets('Unit 7 u7_l1 renders None for locked open ending and u7_l4 uses FeedbackToneWheelPanel', (tester) async {
+  testWidgets('Unit 7 u7_l1, u7_l2, and u7_l4 migrate to 3-step keyboard and 3-badge FeedbackToneWheelPanel', (tester) async {
     final spec71 = Curriculum.lessonById('u7_l1_start_plus_tone')!;
     final ctrl71 = await pumpLesson(tester, spec71);
     addTearDown(ctrl71.dispose);
 
-    expect(find.text('Start'), findsOneWidget);
-    expect(find.text('None'), findsOneWidget); // open coda '' locked displays 'None'
-    expect(find.text('Submit'), findsOneWidget);
+    expect(find.text('Build the initial consonant and tone.'), findsOneWidget);
+    expect(find.text('Initial consonant'), findsOneWidget);
+    expect(find.text('None'), findsOneWidget);
+    expect(find.text('Submit'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    // Tapping None renders '∅' on practice-slot-start and advances to Tone, remaining tappable.
+    await tester.ensureVisible(find.text('None'));
+    await tester.tap(find.text('None'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tone'), findsOneWidget);
+    expect(find.byKey(const ValueKey('practice-slot-start')), findsOneWidget);
+    expect(find.text('∅'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('practice-slot-start')));
+    await tester.pumpAndSettle();
+    expect(find.text('Initial consonant'), findsOneWidget);
+
+    await tester.tap(find.text('b').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('High Level'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pumpAndSettle();
+    expect(find.byType(FeedbackToneWheelPanel), findsOneWidget);
+    expect(find.textContaining('Initial:'), findsOneWidget);
+    expect(find.textContaining('Final:'), findsOneWidget);
+    expect(find.textContaining('Tone:'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final spec72 = Curriculum.lessonById('u7_l2_vowel_ending_tone')!;
+    final ctrl72 = await pumpLesson(tester, spec72);
+    addTearDown(ctrl72.dispose);
+    expect(find.text('Build the final and tone.'), findsOneWidget);
+    expect(find.text('Final'), findsOneWidget);
+    await tester.tap(find.text('aa'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('High Level'));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pumpAndSettle();
+    expect(find.byType(FeedbackToneWheelPanel), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     final spec74 = Curriculum.lessonById('u7_l4_open_42_keys')!;
     final ctrl74 = await pumpLesson(tester, spec74);
     addTearDown(ctrl74.dispose);
 
+    expect(find.text('Build the full syllable.'), findsOneWidget);
     await tester.ensureVisible(find.text('b'));
     await tester.tap(find.text('b'));
-    await tester.ensureVisible(find.text('aa'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('aa'));
-    await tester.ensureVisible(find.text('1').first);
-    await tester.tap(find.text('1').first);
-    await tester.pump();
-    await tester.ensureVisible(find.text('Submit'));
-    await tester.tap(find.text('Submit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('High Level'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
 
     expect(find.byType(FeedbackToneWheelPanel), findsOneWidget);
+    expect(find.textContaining('Initial:'), findsOneWidget);
+    expect(find.textContaining('Final:'), findsOneWidget);
+    expect(find.textContaining('Tone:'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -378,6 +416,53 @@ void main() {
     await tester.pumpAndSettle();
     expect(ctrl.activeFeedbackClipIndex, isNull);
     expect(opacityFor('Your Guess · '), 1.0);
+  });
+
+  testWidgets('Phonetics & IPA starts collapsed, expands on tap with sticky Start Practice, and Lesson notes opens mid-lesson', (tester) async {
+    final spec21 = Curriculum.lessonById('u2_l1_b_vs_p')!;
+    final ctrl = await pumpLesson(tester, spec21, autoPlay: true);
+    addTearDown(ctrl.dispose);
+
+    // HearAndCompareView: sticky CTA visible immediately at 360x640 (1.3x), Phonetics & IPA collapsed.
+    expect(find.text('Phonetics & IPA'), findsOneWidget);
+    expect(find.textContaining('IPA [pʰ]'), findsNothing);
+    expect(find.text('Start Practice'), findsOneWidget);
+    expect(
+      tester.getBottomRight(find.text('Start Practice')).dy,
+      lessThanOrEqualTo(640),
+    );
+    expect(find.byTooltip('Lesson notes'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    // Expanding Phonetics & IPA reveals tagged IPA while Start Practice stays pinned in footer.
+    await tester.tap(find.text('Phonetics & IPA'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('IPA [pʰ]'), findsOneWidget);
+    expect(
+      tester.getBottomRight(find.text('Start Practice')).dy,
+      lessThanOrEqualTo(640),
+    );
+    expect(tester.takeException(), isNull);
+
+    // Advance to Warmup -> info_outline ('Lesson notes') stops audio and opens modal sheet without resetting state.
+    await tester.tap(find.text('Start Practice'));
+    await tester.pumpAndSettle();
+    expect(ctrl.phase, SessionPhase.warmup);
+    expect(find.byTooltip('Lesson notes'), findsOneWidget);
+
+    final stopsBeforeSheet = audio.stopCalls;
+    await tester.tap(find.byTooltip('Lesson notes'));
+    await tester.pumpAndSettle();
+    expect(audio.stopCalls, greaterThan(stopsBeforeSheet));
+    expect(find.text('Lesson 2.1 · b vs. p'), findsOneWidget);
+    expect(find.text(spec21.introSummary), findsOneWidget);
+    expect(find.textContaining('IPA [pʰ]'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byTooltip('Close notes'));
+    await tester.pumpAndSettle();
+    expect(ctrl.phase, SessionPhase.warmup);
+    expect(find.text('Same initial consonant?'), findsOneWidget);
   });
 }
 

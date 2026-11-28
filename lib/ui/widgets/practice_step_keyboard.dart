@@ -3,11 +3,10 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/curriculum.dart';
 import '../../core/jyutping_constants.dart';
 import '../../core/syllable_models.dart';
-import '../../state/quiz_controller.dart';
 import 'pitch_contour_painter.dart';
 import 'uniform_two_column_grid.dart';
 
-/// Contextual 3-step keyboard showing Start (20), Endings (57), or Tones (6).
+/// Contextual 3-step keyboard showing Initial consonants (20), Finals (57), or Tones (6).
 class PracticeStepKeyboard extends StatelessWidget {
   const PracticeStepKeyboard({
     super.key,
@@ -37,7 +36,7 @@ class PracticeStepKeyboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (activeStep) {
-      case PracticeStep.start:
+      case PracticeStep.initial:
         return Align(
           alignment: Alignment.topCenter,
           child: SingleChildScrollView(
@@ -49,7 +48,7 @@ class PracticeStepKeyboard extends StatelessWidget {
             ),
           ),
         );
-      case PracticeStep.ending:
+      case PracticeStep.syllableFinal:
         return _EndingsKeyboard(
           selectedEnding: selectedEnding,
           isGuided: isGuided,
@@ -100,7 +99,7 @@ class _StartKeyboard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Start',
+            PracticeStep.initial.headerLabel,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
@@ -132,7 +131,7 @@ class _StartKeyboard extends StatelessWidget {
             ),
           const SizedBox(height: 2),
           _StepKeyButton(
-            label: 'None',
+            label: ComponentType.noneLabel,
             selected: selectedInitial == '',
             enabled: !isGuided || allowedStarts.contains(''),
             minHeight: 44,
@@ -189,7 +188,7 @@ class _EndingsKeyboard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Ending',
+            PracticeStep.syllableFinal.headerLabel,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -208,7 +207,7 @@ class _EndingsKeyboard extends StatelessWidget {
                 final rowHeight = rawRowHeight.clamp(24.0, 48.0);
                 final oddTint = scheme.secondaryContainer.withValues(alpha: 0.48);
 
-                return Column(
+                final grid = Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     for (var r = 0; r < rows.length; r++) ...[
@@ -248,6 +247,10 @@ class _EndingsKeyboard extends StatelessWidget {
                     ],
                   ],
                 );
+                if (rawRowHeight < 24.0) {
+                  return SingleChildScrollView(child: grid);
+                }
+                return grid;
               },
             ),
           ),
@@ -285,7 +288,7 @@ class _TonesKeyboard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Tone',
+          PracticeStep.tone.headerLabel,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
             color: scheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,

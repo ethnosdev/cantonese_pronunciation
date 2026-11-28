@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../core/syllable_models.dart';
-import '../../state/quiz_controller.dart';
 
 /// Displays the progressively built Jyutping syllable with tappable step segments.
 class PracticeSlotsBar extends StatelessWidget {
@@ -10,14 +9,14 @@ class PracticeSlotsBar extends StatelessWidget {
     required this.draft,
     required this.activeStep,
     required this.result,
-    required this.isTonesOnlyLocked,
+    required this.lockedSteps,
     required this.onSelectStep,
   });
 
   final DraftInputState draft;
-  final PracticeStep activeStep;
+  final PracticeStep? activeStep;
   final GradingResult? result;
-  final bool isTonesOnlyLocked;
+  final Set<PracticeStep> lockedSteps;
   final void Function(PracticeStep step) onSelectStep;
 
   @override
@@ -40,15 +39,19 @@ class PracticeSlotsBar extends StatelessWidget {
           );
     final toneGrade = result?.grades[ComponentType.tone];
 
+    final startLocked = lockedSteps.contains(PracticeStep.initial);
+    final finalLocked = lockedSteps.contains(PracticeStep.syllableFinal);
+    final toneLocked = lockedSteps.contains(PracticeStep.tone);
+
     final showEmptyInitialSymbol = draft.initial == '' &&
-        ((!isTonesOnlyLocked && result == null) ||
+        ((result == null && !(startLocked && finalLocked)) ||
             (startGrade != null && !startGrade.isCorrect));
 
     final String startText;
     if (draft.initial == null) {
       startText = '_';
     } else if (draft.initial!.isEmpty) {
-      startText = showEmptyInitialSymbol ? '∅' : '';
+      startText = showEmptyInitialSymbol ? ComponentType.emptySymbol : '';
     } else {
       startText = draft.initial!;
     }
@@ -81,31 +84,39 @@ class PracticeSlotsBar extends StatelessWidget {
                   _SyllableSegment(
                     key: const ValueKey('practice-slot-start'),
                     text: startText,
+                    semanticsLabel: draft.initial == null
+                        ? 'not selected'
+                        : (draft.initial!.isEmpty && showEmptyInitialSymbol
+                              ? 'No initial'
+                              : null),
                     isPlaceholder: draft.initial == null,
                     isMutedSymbol: draft.initial == '',
-                    active: result == null && activeStep == PracticeStep.start,
+                    active: result == null && activeStep == PracticeStep.initial,
                     grade: startGrade,
-                    locked: isTonesOnlyLocked,
-                    onTap: () => onSelectStep(PracticeStep.start),
+                    locked: startLocked,
+                    onTap: () => onSelectStep(PracticeStep.initial),
                   ),
                 _SyllableSegment(
                   key: const ValueKey('practice-slot-ending'),
                   text: endingText,
+                  semanticsLabel: draft.nucleus == null ? 'not selected' : null,
                   isPlaceholder: draft.nucleus == null,
                   isMutedSymbol: false,
-                  active: result == null && activeStep == PracticeStep.ending,
+                  active:
+                      result == null && activeStep == PracticeStep.syllableFinal,
                   grade: endingGrade,
-                  locked: isTonesOnlyLocked,
-                  onTap: () => onSelectStep(PracticeStep.ending),
+                  locked: finalLocked,
+                  onTap: () => onSelectStep(PracticeStep.syllableFinal),
                 ),
                 _SyllableSegment(
                   key: const ValueKey('practice-slot-tone'),
                   text: toneText,
+                  semanticsLabel: draft.tone == null ? 'not selected' : null,
                   isPlaceholder: draft.tone == null,
                   isMutedSymbol: false,
                   active: result == null && activeStep == PracticeStep.tone,
                   grade: toneGrade,
-                  locked: false,
+                  locked: toneLocked,
                   fontSize: 20,
                   onTap: () => onSelectStep(PracticeStep.tone),
                 ),
@@ -117,7 +128,7 @@ class PracticeSlotsBar extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              'Hummed syllable ${result!.guessedKey.syllable}',
+              'Syllabic nasal ${result!.guessedKey.syllable}',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: scheme.primary,
               ),
@@ -132,6 +143,7 @@ class _SyllableSegment extends StatelessWidget {
   const _SyllableSegment({
     super.key,
     required this.text,
+    this.semanticsLabel,
     required this.isPlaceholder,
     required this.isMutedSymbol,
     required this.active,
@@ -142,6 +154,7 @@ class _SyllableSegment extends StatelessWidget {
   });
 
   final String text;
+  final String? semanticsLabel;
   final bool isPlaceholder;
   final bool isMutedSymbol;
   final bool active;
@@ -181,6 +194,7 @@ class _SyllableSegment extends StatelessWidget {
         ),
         child: Text(
           text,
+          semanticsLabel: semanticsLabel,
           style: TextStyle(
             fontSize: fontSize,
             fontWeight: isPlaceholder ? FontWeight.w500 : FontWeight.w700,

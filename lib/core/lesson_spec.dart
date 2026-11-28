@@ -8,18 +8,6 @@ enum ExerciseFormat {
   slotAssembly,
 }
 
-/// Phonological dimension compared during a Same/Diff warmup or choice trial.
-enum DifferentProperty {
-  tone('Tone'),
-  initial('Start'),
-  nucleus('Vowel'),
-  coda('Ending');
-
-  const DifferentProperty(this.beginnerLabel);
-
-  final String beginnerLabel;
-}
-
 /// Identifies whether a trial came from core lesson practice or Daily Review.
 enum DeckSource { core, review }
 
@@ -46,21 +34,14 @@ enum SessionPhase {
   summary,
 }
 
-/// Slot visibility and constraint configuration for Unit 7 assembly lessons.
+/// Slot constraint configuration for Unit 7 assembly lessons.
 class SlotMask {
   const SlotMask({
     this.lockedComponents = const {},
-    this.visibleComponents = const {
-      ComponentType.initial,
-      ComponentType.nucleus,
-      ComponentType.coda,
-      ComponentType.tone,
-    },
     this.isGuided = true,
   });
 
   final Set<ComponentType> lockedComponents;
-  final Set<ComponentType> visibleComponents;
   final bool isGuided;
 
   List<ComponentType> get statsComponents => ComponentType.values
@@ -127,7 +108,7 @@ class WarmupSpec {
   final List<HearAndCompareItem> hearAndCompareItems;
   final int sameDifferentCount;
   final String? sameDifferentPrompt;
-  final DifferentProperty? differentProperty;
+  final ComponentType? differentProperty;
 }
 
 /// Grouping unit on the Learning Path Home screen.
@@ -136,13 +117,11 @@ class UnitSpec {
     required this.id,
     required this.number,
     required this.title,
-    required this.subtitle,
   });
 
   final String id;
   final int number;
   final String title;
-  final String subtitle;
 }
 
 /// Static definition for one of the 28 beginner curriculum lessons.
@@ -152,7 +131,9 @@ class LessonSpec {
     required this.unitId,
     required this.numberLabel,
     required this.title,
-    required this.cue,
+    required this.introSummary,
+    this.phoneticsNote,
+    this.trialPrompt,
     required this.poolTier,
     required this.format,
     required this.coreCount,
@@ -168,19 +149,24 @@ class LessonSpec {
     this.slotMask,
     this.seedSkills = const [],
     this.cumulativeReviewUpToUnit,
-  });
+  }) : assert(
+         format != ExerciseFormat.slotAssembly ||
+             (trialPrompt != null && trialPrompt != ''),
+       );
 
   final String id;
   final String unitId;
   final String numberLabel;
   final String title;
-  final String cue;
+  final String introSummary;
+  final String? phoneticsNote;
+  final String? trialPrompt;
   final DatasetTier poolTier;
   final ExerciseFormat format;
   final int coreCount;
   final bool Function(SyllableEntry entry) poolPredicate;
   final ComponentType? targetComponent;
-  final DifferentProperty? differentProperty;
+  final ComponentType? differentProperty;
   final List<String> choices;
   final List<List<String>>? choiceGroups;
   final bool showContoursOnButtons;
@@ -309,7 +295,7 @@ class LessonTrial {
   final SyllableEntry target;
   final SyllableEntry? pairTarget;
   final bool? isSamePair;
-  final DifferentProperty? differentProperty;
+  final ComponentType? differentProperty;
   final String promptText;
   final ExerciseFormat format;
   final DeckSource deckSource;
@@ -373,7 +359,7 @@ class TrialFeedback {
   final SyllableEntry? pairEntry;
   final bool? isSamePair;
   final bool? userPickedSame;
-  final DifferentProperty? differentProperty;
+  final ComponentType? differentProperty;
   final bool isWarmup;
 }
 

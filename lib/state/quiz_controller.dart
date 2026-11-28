@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 
 import '../audio/audio_playback_service.dart';
 import '../core/guided_constraint_engine.dart';
-import '../core/jyutping_constants.dart';
 import '../core/syllable_grader.dart';
 import '../core/syllable_models.dart';
 import '../core/weighted_sampler.dart';
@@ -10,8 +9,7 @@ import '../data/audio_bundle_repository.dart';
 import '../data/stats_repository.dart';
 import '../data/syllable_repository.dart';
 
-/// Active keyboard step in the 3-step Practice word builder.
-enum PracticeStep { start, ending, tone }
+export '../core/syllable_models.dart' show PracticeStep;
 
 /// Coordinates Practice turns, 3-step keyboard flow, Guided/Test constraints, and grading.
 class QuizController extends ChangeNotifier {
@@ -41,7 +39,7 @@ class QuizController extends ChangeNotifier {
 
   SyllableEntry? _currentTarget;
   DraftInputState _draft = const DraftInputState();
-  PracticeStep _activeStep = PracticeStep.start;
+  PracticeStep _activeStep = PracticeStep.initial;
   GradingResult? _lastResult;
   bool _isLoading = true;
   String? _audioError;
@@ -59,64 +57,38 @@ class QuizController extends ChangeNotifier {
   int? get activeFeedbackClipIndex => _activeFeedbackClipIndex;
   bool get isSubmitted => _lastResult != null;
   bool get isTonesOnlyLocked => _settings.focusFilter is TonesOnlyFilter;
+  Set<PracticeStep> get lockedSteps => isTonesOnlyLocked
+      ? const {PracticeStep.initial, PracticeStep.syllableFinal}
+      : const {};
   String? get selectedEnding =>
-      _draft.nucleus == null ? null : '${_draft.nucleus}${_draft.coda ?? ''}';
+      ThreeStepAssemblyHelper.selectedEndingFor(_draft);
 
   bool get canSubmit {
     if (isSubmitted || _currentTarget == null) return false;
-    if (_settings.constraintMode == ConstraintMode.guided) {
-      return _constraintEngine.canSubmit(
-        _draft,
-        _settings.focusFilter,
-        preventToneLeaking: true,
-      );
-    }
-    return _draft.canSubmit;
+    return ThreeStepAssemblyHelper.canSubmitAssembly(
+      draft: _draft,
+      engine: _constraintEngine,
+      filter: _settings.focusFilter,
+      lockedSteps: lockedSteps,
+      isGuided: _settings.constraintMode == ConstraintMode.guided,
+      preventToneLeaking: true,
+    );
   }
 
-  /// Enabled Start values (`''` for None, `'b'`, etc.) in Guided mode.
+  /// Enabled Initial values (`''` for None, `'b'`, `'gw'`, etc.) in Guided mode.
   Set<String> allowedStarts() {
     if (_settings.constraintMode == ConstraintMode.test) {
       return const {};
     }
-    final ending = selectedEnding;
-    return {
-      for (final e in _constraintEngine.pool)
-        if (ending == null || '${e.nucleus}${e.coda}' == ending) e.initial,
-    };
+    return _constraintEngine.allowedStarts();
   }
 
-  /// Enabled 57-Final Ending strings in Guided mode given the selected Start.
+  /// Enabled 57-Final strings in Guided mode given the selected Initial.
   Set<String> allowedEndings() {
     if (_settings.constraintMode == ConstraintMode.test) {
       return const {};
     }
-    return {
-      for (final e in _constraintEngine.pool)
-        if (_draft.initial == null || e.initial == _draft.initial)
-          '${e.nucleus}${e.coda}',
-    };
-  }
-
-  Set<String> allowedInitials() {
-    if (_settings.constraintMode == ConstraintMode.test) {
-      return const {};
-    }
-    return _constraintEngine.allowedInitials(_draft);
-  }
-
-  Set<String> allowedNuclei() {
-    if (_settings.constraintMode == ConstraintMode.test) {
-      return const {};
-    }
-    return _constraintEngine.allowedNuclei(_draft);
-  }
-
-  Set<String> allowedCodas() {
-    if (_settings.constraintMode == ConstraintMode.test) {
-      return const {};
-    }
-    return _constraintEngine.allowedCodas(_draft);
+    return _constraintEngine.allowedEndings(_draft.initial);
   }
 
   Set<int> allowedTones() {
@@ -156,108 +128,61 @@ class QuizController extends ChangeNotifier {
   }
 
   void setActiveStep(PracticeStep step) {
-    if (isSubmitted) return;
-    if (isTonesOnlyLocked && step != PracticeStep.tone) return;
+    if (isSubmitted || lockedSteps.contains(step)) return;
     _activeStep = step;
     notifyListeners();
   }
 
-  /// Picks Start (`''` for None) and advances automatically to Endings (or Tone if Ending is set).
+  /// Picks Initial (`''` for None) and advances automatically to Final (or Tone if Final is set).
   void selectStart(String initial) {
-    if (isSubmitted || isTonesOnlyLocked) return;
-    var nextNucleus = _draft.nucleus;
-    var nextCoda = _draft.coda;
-    if (nextNucleus != null &&
-        _settings.constraintMode == ConstraintMode.guided) {
-      final ending = '$nextNucleus${nextCoda ?? ''}';
-      final valid = _constraintEngine.pool.any(
-        (e) => e.initial == initial && '${e.nucleus}${e.coda}' == ending,
-      );
-      if (!valid) {
-        nextNucleus = null;
-        nextCoda = null;
-      }
-    }
-    _draft = _draft.copyWith(
+    if (isSubmitted || lockedSteps.contains(PracticeStep.initial)) return;
+    final transition = ThreeStepAssemblyHelper.selectStart(
+      draft: _draft,
+      currentStep: _activeStep,
       initial: initial,
-      nucleus: nextNucleus,
-      coda: nextCoda,
-      tone: null,
+      engine: _constraintEngine,
+      lockedSteps: lockedSteps,
+      isGuided: _settings.constraintMode == ConstraintMode.guided,
     );
-    _activeStep = nextNucleus == null ? PracticeStep.ending : PracticeStep.tone;
+    _draft = transition.draft;
+    _activeStep = transition.nextStep;
     notifyListeners();
   }
 
-  /// Picks one of the 57 Endings and advances to Tones (or Start if Start is unselected).
+  /// Picks one of the 57 Finals and advances to Tone (or Initial if Initial is unselected).
   void selectEnding(String finalStr) {
-    if (isSubmitted || isTonesOnlyLocked) return;
-    final (nucleus, coda) = JyutpingConstants.splitFinal(finalStr);
-    _draft = _draft.copyWith(nucleus: nucleus, coda: coda, tone: null);
-    _activeStep = _draft.initial == null
-        ? PracticeStep.start
-        : PracticeStep.tone;
+    if (isSubmitted || lockedSteps.contains(PracticeStep.syllableFinal)) return;
+    final transition = ThreeStepAssemblyHelper.selectEnding(
+      draft: _draft,
+      currentStep: _activeStep,
+      finalStr: finalStr,
+      lockedSteps: lockedSteps,
+    );
+    _draft = transition.draft;
+    _activeStep = transition.nextStep;
     notifyListeners();
   }
 
-  /// Picks Tone and immediately submits when Start and Ending are filled.
+  /// Picks Tone and submits when Initial and Final (or syllabic nasal alias) are filled.
   Future<void> selectToneAndSubmit(int tone) async {
     if (isSubmitted) return;
-    _draft = _draft.copyWith(tone: tone);
-    if (_draft.initial == null) {
-      _activeStep = PracticeStep.start;
-      notifyListeners();
-      return;
-    }
-    if (_draft.nucleus == null) {
-      _activeStep = PracticeStep.ending;
-      notifyListeners();
-      return;
-    }
-    if (canSubmit) {
+    final transition = ThreeStepAssemblyHelper.selectToneAndSubmit(
+      draft: _draft,
+      currentStep: _activeStep,
+      tone: tone,
+      engine: _constraintEngine,
+      filter: _settings.focusFilter,
+      lockedSteps: lockedSteps,
+      isGuided: _settings.constraintMode == ConstraintMode.guided,
+      preventToneLeaking: true,
+    );
+    _draft = transition.draft;
+    _activeStep = transition.nextStep;
+    if (transition.shouldSubmit) {
       await submit();
     } else {
       notifyListeners();
     }
-  }
-
-  void toggleInitial(String value) {
-    if (isSubmitted || isTonesOnlyLocked) return;
-    _draft = _draft.copyWith(initial: _draft.initial == value ? null : value);
-    notifyListeners();
-  }
-
-  void toggleNucleus(String value) {
-    if (isSubmitted || isTonesOnlyLocked) return;
-    _draft = _draft.copyWith(nucleus: _draft.nucleus == value ? null : value);
-    notifyListeners();
-  }
-
-  void toggleCoda(String value) {
-    if (isSubmitted || isTonesOnlyLocked) return;
-    _draft = _draft.copyWith(coda: _draft.coda == value ? null : value);
-    notifyListeners();
-  }
-
-  void toggleTone(int value) {
-    if (isSubmitted) return;
-    _draft = _draft.copyWith(tone: _draft.tone == value ? null : value);
-    notifyListeners();
-  }
-
-  void clearSlot(ComponentType component) {
-    if (isSubmitted) return;
-    if (isTonesOnlyLocked && component != ComponentType.tone) return;
-    switch (component) {
-      case ComponentType.initial:
-        _draft = _draft.copyWith(initial: null);
-      case ComponentType.nucleus:
-        _draft = _draft.copyWith(nucleus: null);
-      case ComponentType.coda:
-        _draft = _draft.copyWith(coda: null);
-      case ComponentType.tone:
-        _draft = _draft.copyWith(tone: null);
-    }
-    notifyListeners();
   }
 
   void clearAll() {
@@ -267,7 +192,7 @@ class QuizController extends ChangeNotifier {
       _activeStep = PracticeStep.tone;
     } else {
       _draft = const DraftInputState();
-      _activeStep = PracticeStep.start;
+      _activeStep = PracticeStep.initial;
     }
     notifyListeners();
   }
@@ -375,7 +300,7 @@ class QuizController extends ChangeNotifier {
       _activeStep = PracticeStep.tone;
     } else {
       _draft = const DraftInputState();
-      _activeStep = PracticeStep.start;
+      _activeStep = PracticeStep.initial;
     }
 
     notifyListeners();

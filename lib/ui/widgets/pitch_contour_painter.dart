@@ -67,7 +67,7 @@ class PitchContourPainter extends CustomPainter {
 
     final path = Path();
     switch (tone) {
-      case 1: // 55 High Flat
+      case 1: // 55 High Level
         final y = yForLevel(5.0);
         path.moveTo(padX, y);
         path.lineTo(w - padX, y);
@@ -79,7 +79,7 @@ class PitchContourPainter extends CustomPainter {
           w - padX,
           yForLevel(5.0),
         );
-      case 3: // 33 Mid Flat
+      case 3: // 33 Mid Level
         final y = yForLevel(3.0);
         path.moveTo(padX, y);
         path.lineTo(w - padX, y);
@@ -99,7 +99,7 @@ class PitchContourPainter extends CustomPainter {
           w - padX,
           yForLevel(3.0),
         );
-      case 6: // 22 Low Flat
+      case 6: // 22 Low Level
         final y = yForLevel(2.0);
         path.moveTo(padX, y);
         path.lineTo(w - padX, y);

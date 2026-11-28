@@ -1,6 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../../core/jyutping_constants.dart';
 import '../../core/syllable_models.dart';
 import 'pitch_contour_painter.dart';
 
@@ -9,8 +8,6 @@ class FeedbackToneWheelPanel extends StatelessWidget {
   const FeedbackToneWheelPanel({
     super.key,
     required this.result,
-    this.useBeginnerLabels = false,
-    this.useThreeBeginnerBadges = false,
     this.activeClipIndex,
     required this.onPlayTarget,
     required this.onPlayGuess,
@@ -19,8 +16,6 @@ class FeedbackToneWheelPanel extends StatelessWidget {
   });
 
   final GradingResult result;
-  final bool useBeginnerLabels;
-  final bool useThreeBeginnerBadges;
   final int? activeClipIndex;
   final VoidCallback onPlayTarget;
   final VoidCallback onPlayGuess;
@@ -28,9 +23,6 @@ class FeedbackToneWheelPanel extends StatelessWidget {
   final VoidCallback onNext;
 
   List<ComponentGrade> _displayGrades() {
-    if (!useThreeBeginnerBadges) {
-      return [for (final comp in ComponentType.values) result.grades[comp]!];
-    }
     final iGrade = result.grades[ComponentType.initial]!;
     final nGrade = result.grades[ComponentType.nucleus]!;
     final cGrade = result.grades[ComponentType.coda]!;
@@ -52,7 +44,6 @@ class FeedbackToneWheelPanel extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final toneByNumber = {for (final e in result.toneFamily) e.tone: e};
     final isChecked = const {'p', 't', 'k'}.contains(result.target.coda);
-    final beginnerMode = useBeginnerLabels || useThreeBeginnerBadges;
     final badges = _displayGrades();
 
     return Card(
@@ -91,9 +82,8 @@ class FeedbackToneWheelPanel extends StatelessWidget {
                 for (var i = 0; i < badges.length; i++)
                   _ComponentBadge(
                     grade: badges[i],
-                    useBeginnerLabels: beginnerMode,
-                    overrideLabel: useThreeBeginnerBadges && i == 1
-                        ? 'Ending'
+                    overrideLabel: i == 1
+                        ? PracticeStep.syllableFinal.shortLabel
                         : null,
                   ),
               ],
@@ -180,22 +170,16 @@ class FeedbackToneWheelPanel extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          if (beginnerMode)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: PitchContourBox(
-                                tone: t,
-                                isCheckedTone: isChecked,
-                                width: 28,
-                                height: 14,
-                                showGuides: false,
-                              ),
-                            )
-                          else
-                            Text(
-                              JyutpingConstants.tonePitchLabels[t]!,
-                              style: const TextStyle(fontSize: 12),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: PitchContourBox(
+                              tone: t,
+                              isCheckedTone: isChecked,
+                              width: 28,
+                              height: 14,
+                              showGuides: false,
                             ),
+                          ),
                         ],
                       ),
                     ),
@@ -221,24 +205,23 @@ class FeedbackToneWheelPanel extends StatelessWidget {
 class _ComponentBadge extends StatelessWidget {
   const _ComponentBadge({
     required this.grade,
-    required this.useBeginnerLabels,
     this.overrideLabel,
   });
 
   final ComponentGrade grade;
-  final bool useBeginnerLabels;
   final String? overrideLabel;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final ok = grade.isCorrect;
-    final emptyLabel = useBeginnerLabels ? 'None' : '∅';
-    final exp = grade.expected.isEmpty ? emptyLabel : grade.expected;
-    final guess = grade.guessed.isEmpty ? emptyLabel : grade.guessed;
-    final compLabel =
-        overrideLabel ??
-        grade.component.displayLabel(useBeginnerLabels: useBeginnerLabels);
+    final exp = grade.expected.isEmpty
+        ? ComponentType.noneLabel
+        : grade.expected;
+    final guess = grade.guessed.isEmpty
+        ? ComponentType.noneLabel
+        : grade.guessed;
+    final compLabel = overrideLabel ?? grade.component.shortLabel;
     final text = ok
         ? '$compLabel: $exp ✓'
         : '$compLabel: $guess → $exp ✗';

@@ -6,10 +6,10 @@ import 'package:material_ui/material_ui.dart';
 import '../core/curriculum.dart';
 import '../core/lesson_spec.dart';
 import '../state/lesson_session_controller.dart';
-import 'widgets/answer_slots_bar.dart';
 import 'widgets/feedback_tone_wheel_panel.dart';
-import 'widgets/jyutping_keyboard.dart';
 import 'widgets/pitch_contour_painter.dart';
+import 'widgets/practice_slots_bar.dart';
+import 'widgets/practice_step_keyboard.dart';
 import 'widgets/uniform_two_column_grid.dart';
 
 /// Distraction-free runner for standard lessons and standalone Daily Review.
@@ -149,15 +149,32 @@ class _LessonScreenState extends State<LessonScreen> {
                             onClose: _handleCloseRequested,
                           ),
                           Expanded(
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.fromLTRB(
-                                12,
-                                6,
-                                12,
-                                16,
-                              ),
-                              child: _buildPhaseBody(context, ctrl),
-                            ),
+                            child: ctrl.phase == SessionPhase.hearAndCompare
+                                ? _HearAndCompareView(controller: ctrl)
+                                : (ctrl.phase == SessionPhase.trial &&
+                                          ctrl.currentTrial?.format ==
+                                              ExerciseFormat.slotAssembly
+                                      ? Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            12,
+                                            6,
+                                            12,
+                                            12,
+                                          ),
+                                          child: _SlotAssemblyTrial(
+                                            controller: ctrl,
+                                            trial: ctrl.currentTrial!,
+                                          ),
+                                        )
+                                      : SingleChildScrollView(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            12,
+                                            6,
+                                            12,
+                                            16,
+                                          ),
+                                          child: _buildPhaseBody(context, ctrl),
+                                        )),
                           ),
                         ],
                       );
@@ -227,8 +244,15 @@ class _LessonTopBar extends StatelessWidget {
       }
     }
 
+    final showNotesButton =
+        spec != null &&
+        spec.introSummary.isNotEmpty &&
+        (controller.phase == SessionPhase.warmup ||
+            controller.phase == SessionPhase.trial ||
+            controller.phase == SessionPhase.feedback);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+      padding: EdgeInsets.fromLTRB(4, 4, showNotesButton ? 4 : 12, 4),
       child: Row(
         children: [
           IconButton(
@@ -268,13 +292,92 @@ class _LessonTopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Text(
-            stepText,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+          Flexible(
+            child: Text(
+              stepText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
+          if (showNotesButton)
+            IconButton(
+              tooltip: 'Lesson notes',
+              onPressed: () =>
+                  _showLessonNotesSheet(context, controller, spec),
+              icon: const Icon(Icons.info_outline),
+            ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showLessonNotesSheet(
+    BuildContext context,
+    LessonSessionController controller,
+    LessonSpec spec,
+  ) async {
+    await controller.audioService.stop();
+    if (!context.mounted) return;
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.75;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheetCtx) => ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      spec.isCumulativeReview
+                          ? spec.title
+                          : 'Lesson ${spec.numberLabel} · ${spec.title}',
+                      style: Theme.of(sheetCtx).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Close notes',
+                    onPressed: () => Navigator.of(sheetCtx).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                spec.introSummary,
+                style: Theme.of(sheetCtx).textTheme.bodyMedium,
+              ),
+              if (spec.phoneticsNote != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Phonetics & IPA',
+                  style: Theme.of(sheetCtx).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  spec.phoneticsNote!,
+                  style: Theme.of(sheetCtx).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(sheetCtx).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -294,56 +397,104 @@ class _HearAndCompareView extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (spec != null) ...[
-          Card(
-            color: scheme.surfaceContainerLow,
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Text(
-                spec.cue,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (spec != null) ...[
+                  Card(
+                    color: scheme.surfaceContainerLow,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            spec.introSummary,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          if (spec.phoneticsNote != null) ...[
+                            const SizedBox(height: 4),
+                            ExpansionTile(
+                              title: const Text('Phonetics & IPA'),
+                              initiallyExpanded: false,
+                              dense: true,
+                              tilePadding: EdgeInsets.zero,
+                              childrenPadding: const EdgeInsets.only(bottom: 8),
+                              shape: const Border(),
+                              collapsedShape: const Border(),
+                              children: [
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    spec.phoneticsNote!,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: scheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else
+                            const SizedBox(height: 6),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (controller.audioError != null) ...[
+                  _AudioErrorBanner(
+                    message: controller.audioError!,
+                    onRetry: controller.playAllHearAndCompare,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Tap each sound to compare',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: controller.playAllHearAndCompare,
+                      icon: const Icon(Icons.playlist_play),
+                      label: const Text('Play All'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                for (var i = 0; i < cards.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 8),
+                  _HearCompareTile(
+                    card: cards[i],
+                    active: controller.activeIntroCardIndex == i,
+                    onTap: () =>
+                        controller.playHearAndCompareCard(i, cards[i].entry),
+                  ),
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-        ],
-        if (controller.audioError != null) ...[
-          _AudioErrorBanner(
-            message: controller.audioError!,
-            onRetry: controller.playAllHearAndCompare,
-          ),
-          const SizedBox(height: 8),
-        ],
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Tap each sound to compare',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-            ),
-            TextButton.icon(
-              onPressed: controller.playAllHearAndCompare,
-              icon: const Icon(Icons.playlist_play),
-              label: const Text('Play All'),
-            ),
-          ],
         ),
-        const SizedBox(height: 8),
-        for (var i = 0; i < cards.length; i++) ...[
-          if (i > 0) const SizedBox(height: 8),
-          _HearCompareTile(
-            card: cards[i],
-            active: controller.activeIntroCardIndex == i,
-            onTap: () => controller.playHearAndCompareCard(i, cards[i].entry),
-          ),
-        ],
-        const SizedBox(height: 16),
-        ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 46),
-          child: FilledButton(
-            onPressed: controller.startPracticeFromIntro,
-            child: const Text('Start Practice'),
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 46),
+              child: FilledButton(
+                onPressed: controller.startPracticeFromIntro,
+                child: const Text('Start Practice'),
+              ),
+            ),
           ),
         ),
       ],
@@ -829,43 +980,54 @@ class _SlotAssemblyTrial extends StatelessWidget {
           ),
           const SizedBox(height: 6),
         ],
-        Center(
-          child: FilledButton.tonalIcon(
-            onPressed: controller.playCurrentPrompt,
-            icon: const Icon(Icons.volume_up, size: 18),
-            label: const Text('Replay'),
-          ),
-        ),
-        const SizedBox(height: 6),
         Text(
           trial.promptText,
           textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 6),
-        AnswerSlotsBar(
-          draft: controller.draft,
-          result: null,
-          useBeginnerLabels: true,
-          lockedComponents: mask.lockedComponents,
-          onClearSlot: controller.clearSlot,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
+                onPressed: controller.playCurrentPrompt,
+                icon: const Icon(Icons.volume_up, size: 18),
+                label: const Text('Replay'),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: PracticeSlotsBar(
+                draft: controller.draft,
+                activeStep: controller.activeStep,
+                result: null,
+                lockedSteps: controller.lockedSteps,
+                onSelectStep: controller.setActiveStep,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
-        JyutpingKeyboard(
-          draft: controller.draft,
-          isGuided: mask.isGuided,
-          useBeginnerLabels: true,
-          visibleComponents: mask.visibleComponents,
-          allowedInitials: controller.allowedInitials(),
-          allowedNuclei: controller.allowedNuclei(),
-          allowedCodas: controller.allowedCodas(),
-          allowedTones: controller.allowedTones(),
-          canSubmit: controller.canSubmitAssembly,
-          onToggleInitial: controller.toggleInitial,
-          onToggleNucleus: controller.toggleNucleus,
-          onToggleCoda: controller.toggleCoda,
-          onToggleTone: controller.toggleTone,
-          onSubmit: controller.submitAssembly,
+        const SizedBox(height: 8),
+        Expanded(
+          child: PracticeStepKeyboard(
+            activeStep: controller.activeStep,
+            draft: controller.draft,
+            selectedEnding: controller.selectedEnding,
+            isGuided: mask.isGuided,
+            allowedStarts: controller.allowedStarts(),
+            allowedEndings: controller.allowedEndings(),
+            allowedTones: controller.allowedTones(),
+            onSelectStart: controller.selectStart,
+            onSelectEnding: controller.selectEnding,
+            onSelectTone: controller.selectToneAndSubmit,
+          ),
         ),
       ],
     );
@@ -881,23 +1043,17 @@ class _FeedbackView extends StatelessWidget {
   Widget build(BuildContext context) {
     final fb = controller.currentFeedback;
     if (fb == null) return const SizedBox.shrink();
-    final trial = controller.currentTrial;
-    final mask = trial?.slotMask;
-    final useFullToneWheelPanel =
-        fb.gradingResult != null &&
-        mask != null &&
-        mask.visibleComponents.length == 4;
 
-    if (useFullToneWheelPanel) {
+    if (fb.gradingResult != null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          AnswerSlotsBar(
+          PracticeSlotsBar(
             draft: controller.draft,
+            activeStep: null,
             result: fb.gradingResult,
-            useBeginnerLabels: true,
-            lockedComponents: mask.lockedComponents,
-            onClearSlot: (_) {},
+            lockedSteps: controller.lockedSteps,
+            onSelectStep: (_) {},
           ),
           const SizedBox(height: 8),
           _FeedbackMotionWrapper(
@@ -905,7 +1061,6 @@ class _FeedbackView extends StatelessWidget {
             isCorrect: fb.isCorrect,
             child: FeedbackToneWheelPanel(
               result: fb.gradingResult!,
-              useBeginnerLabels: true,
               activeClipIndex: controller.activeFeedbackClipIndex,
               onPlayTarget: () => controller.playComparisonClip(fb.target, 0),
               onPlayGuess: () {
@@ -1007,7 +1162,7 @@ class _InlineComparisonFeedbackCard extends StatelessWidget {
             if (feedback.isWarmup && feedback.pairEntry != null) ...[
               Text(
                 '${feedback.isSamePair == true ? "Same" : "Different"} '
-                '${feedback.differentProperty?.beginnerLabel ?? ""}: '
+                '${feedback.differentProperty?.shortLabel ?? ""}: '
                 '${feedback.target.syllable} vs. ${feedback.pairEntry!.syllable}',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
@@ -1036,25 +1191,13 @@ class _InlineComparisonFeedbackCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 _ComparisonRow(
                   roleLabel: 'Your Guess',
-                  syllable:
-                      feedback.guessedEntry?.syllable ??
-                      feedback.gradingResult?.guessedKey.syllable ??
-                      '—',
-                  detailLabel:
-                      feedback.selectedChoice?.label ??
-                      (feedback.gradingResult != null
-                          ? Curriculum.plainToneLabel(
-                              feedback.gradingResult!.guessedKey.tone,
-                            )
-                          : ''),
+                  syllable: feedback.guessedEntry?.syllable ?? '—',
+                  detailLabel: feedback.selectedChoice?.label ?? '',
                   tone:
                       feedback.guessedEntry?.tone ??
-                      feedback.selectedChoice?.tone ??
-                      feedback.gradingResult?.guessedKey.tone,
+                      feedback.selectedChoice?.tone,
                   isCheckedTone: const {'p', 't', 'k'}.contains(
-                    feedback.guessedEntry?.coda ??
-                        feedback.gradingResult?.guessedKey.coda ??
-                        '',
+                    feedback.guessedEntry?.coda ?? '',
                   ),
                   showContour: feedback.showToneContours,
                   isCorrectHighlight: false,

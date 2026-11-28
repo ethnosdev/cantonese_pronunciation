@@ -9,7 +9,7 @@ import 'widgets/feedback_tone_wheel_panel.dart';
 import 'widgets/practice_slots_bar.dart';
 import 'widgets/practice_step_keyboard.dart';
 
-/// 3-step (Start -> Ending -> Tone) Practice screen opened from the Home Drawer.
+/// 3-step (Initial -> Final -> Tone) Practice screen opened from the Home Drawer.
 class QuizScreen extends StatelessWidget {
   const QuizScreen({
     super.key,
@@ -106,7 +106,7 @@ class _QuizBody extends StatelessWidget {
                 draft: controller.draft,
                 activeStep: controller.activeStep,
                 result: controller.lastResult,
-                isTonesOnlyLocked: controller.isTonesOnlyLocked,
+                lockedSteps: controller.lockedSteps,
                 onSelectStep: controller.setActiveStep,
               ),
             ),
@@ -147,8 +147,6 @@ class _QuizBody extends StatelessWidget {
       return SingleChildScrollView(
         child: FeedbackToneWheelPanel(
           result: controller.lastResult!,
-          useBeginnerLabels: true,
-          useThreeBeginnerBadges: true,
           activeClipIndex: controller.activeFeedbackClipIndex,
           onPlayTarget: controller.playTarget,
           onPlayGuess: controller.playGuess,
@@ -265,7 +263,7 @@ class _PracticeOptionsMenu extends StatelessWidget {
               onPressed: () => Navigator.of(dialogContext).pop(filter),
               child: Row(
                 children: [
-                  Expanded(child: Text(_focusLabel(filter))),
+                  Expanded(child: Text(filter.label)),
                   if (filter == current)
                     Icon(
                       Icons.check,
@@ -307,19 +305,6 @@ class _PracticeOptionsMenu extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _focusLabel(FocusFilter filter) {
-    switch (filter) {
-      case AllFilter():
-        return 'All Syllables';
-      case TonesOnlyFilter():
-        return 'Tones Only';
-      case InitialContrastFilter(:final group):
-        return 'Initials: ${group.label}';
-      case FinalContrastFilter(:final group):
-        return 'Finals: ${group.label}';
-    }
   }
 
   String _shortTier(DatasetTier tier) {

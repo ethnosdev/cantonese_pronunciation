@@ -182,22 +182,37 @@ void main() {
       );
       await tester.pump();
 
+      expect(find.textContaining('∅ = no initial.'), findsOneWidget);
+      expect(find.bySemanticsLabel('No initial'), findsOneWidget);
       await tester.tap(find.text('1'));
       await tester.pump();
       expect(audio.playedPaths.last, endsWith('aa/1/aa1.opus'));
 
-      await tester.runAsync(
-        () => statsRepo.recordAttempt(
+      await tester.runAsync(() async {
+        final db = await dbHelper.open();
+        await db.insert('confusion_stats', {
+          'component': ComponentType.initial.name,
+          'expected': '',
+          'guessed': '',
+          'count': 1234,
+        });
+        await statsRepo.recordAttempt(
           const GradingResult(
             target: aa1,
             guessedKey: SyllableKey(
-              initial: '',
+              initial: 'ng',
               nucleus: 'aa',
               coda: '',
               tone: 3,
             ),
             guessedEntry: null,
             grades: {
+              ComponentType.initial: ComponentGrade(
+                component: ComponentType.initial,
+                expected: '',
+                guessed: 'ng',
+                isCorrect: false,
+              ),
               ComponentType.tone: ComponentGrade(
                 component: ComponentType.tone,
                 expected: '1',
@@ -205,12 +220,19 @@ void main() {
                 isCorrect: false,
               ),
             },
-            statsComponents: [ComponentType.tone],
+            statsComponents: [ComponentType.initial, ComponentType.tone],
             autoNormalizedSyllabicNasal: false,
             toneFamily: [aa1],
           ),
-        ),
-      );
+        );
+      });
+
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1.0;
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
       await tester.pumpWidget(
         MaterialApp(home: StatsScreen(statsRepository: statsRepo)),
@@ -221,14 +243,18 @@ void main() {
       await tester.pump();
 
       expect(find.text('Accuracy'), findsOneWidget);
-      expect(find.text('Start'), findsOneWidget);
+      expect(find.text('Initial consonant'), findsOneWidget);
       expect(find.text('Vowel'), findsOneWidget);
-      expect(find.text('Ending'), findsOneWidget);
+      expect(find.text('Coda'), findsOneWidget);
       expect(find.text('Tone'), findsOneWidget);
-      expect(find.text('Initial'), findsNothing);
-      expect(find.text('Nucleus'), findsNothing);
-      expect(find.text('Coda'), findsNothing);
+      expect(find.text('Start'), findsNothing);
+      expect(find.text('Ending'), findsNothing);
+      expect(find.text('∅'), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(find.text('Tone: 1 ↔ 3'), 120);
+      expect(find.text('Initial: None ↔ ng'), findsOneWidget);
       expect(find.text('Tone: 1 ↔ 3'), findsOneWidget);
+      expect(tester.takeException(), isNull);
       await tester.tap(find.byTooltip('Reset Stats'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Reset'));

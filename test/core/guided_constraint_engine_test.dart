@@ -3,6 +3,26 @@ import 'package:cantonese_pronunciation/core/syllable_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  const baa1 = SyllableEntry(
+    syllable: 'baa1',
+    path: 'aa/1/baa1.opus',
+    initial: 'b',
+    nucleus: 'aa',
+    coda: '',
+    tone: 1,
+    initialGroup: 1,
+    priority: 0,
+  );
+  const aa1 = SyllableEntry(
+    syllable: 'aa1',
+    path: 'aa/1/aa1.opus',
+    initial: '',
+    nucleus: 'aa',
+    coda: '',
+    tone: 1,
+    initialGroup: 0,
+    priority: 0,
+  );
   const kyut2 = SyllableEntry(
     syllable: 'kyut2',
     path: 'yut/2/kyut2.opus',
@@ -64,23 +84,18 @@ void main() {
       expect(pri01Engine.allowedTones(draft, const AllFilter()), {2, 3});
     });
 
-    test('uses wildcard null and self-exclusion across slots', () {
-      final engine = GuidedConstraintEngine(const [kyut3, zeoi1]);
+    test('allowedStarts filters only on lockedEnding while allowedEndings filters by initial', () {
+      final engine = GuidedConstraintEngine(const [kyut3, zeoi1, baa1]);
 
-      // Selecting eo leaves initials/tones open because coda=null is wildcard.
-      const eoDraft = DraftInputState(nucleus: 'eo');
-      expect(engine.allowedInitials(eoDraft), {'z'});
-      expect(engine.allowedCodas(eoDraft), {'i'});
-      expect(engine.allowedTones(eoDraft, const AllFilter()), {1});
+      // Unlocked Final (7.3 / Practice): all pool initials stay enabled.
+      expect(engine.allowedStarts(), {'k', 'z', 'b'});
+      // Locked Final (7.1): only initials valid with locked ending stay enabled.
+      expect(engine.allowedStarts(lockedEnding: 'yut'), {'k'});
+      expect(engine.allowedStarts(lockedEnding: 'eoi'), {'z'});
 
-      // Self-exclusion lets user switch nucleus while initial+tone stay chosen.
-      const fullKyut = DraftInputState(
-        initial: 'k',
-        nucleus: 'yu',
-        coda: 't',
-        tone: 3,
-      );
-      expect(engine.allowedNuclei(fullKyut), {'yu'});
+      // Endings narrow once an initial is chosen.
+      expect(engine.allowedEndings(null), {'yut', 'eoi', 'aa'});
+      expect(engine.allowedEndings('k'), {'yut'});
 
       // Blocking open eo on submit since no open-eo syllable exists.
       const invalidOpenEo = DraftInputState(
@@ -94,7 +109,7 @@ void main() {
     test('supports syllabic nasal Initial m/ng alias and hng in Guided Mode', () {
       final engine = GuidedConstraintEngine(const [m4, hng6]);
 
-      expect(engine.allowedInitials(const DraftInputState()), {'', 'm', 'h'});
+      expect(engine.allowedStarts(), {'', 'h'});
       const mDraft = DraftInputState(initial: 'm');
       expect(engine.allowedTones(mDraft, const AllFilter()), {4});
       expect(
@@ -113,6 +128,143 @@ void main() {
         pri0Engine.allowedTones(prefilled, const TonesOnlyFilter()),
         {1, 2, 3, 4, 5, 6},
       );
+    });
+  });
+
+  group('ThreeStepAssemblyHelper', () {
+    test('7.1 locked Final blocks blank initial, preserves locked Final on None, and ignores Final taps', () {
+      final engine = GuidedConstraintEngine(const [aa1, baa1]);
+      const locked = {PracticeStep.syllableFinal};
+      const prefilled = DraftInputState(nucleus: 'aa', coda: '');
+
+      // Cannot submit before explicit initial tap even with prefilled Final + tone.
+      expect(
+        ThreeStepAssemblyHelper.canSubmitAssembly(
+          draft: prefilled.copyWith(tone: 1),
+          engine: engine,
+          filter: const AllFilter(),
+          lockedSteps: locked,
+          isGuided: true,
+          preventToneLeaking: true,
+        ),
+        isFalse,
+      );
+
+      // Tapping tone early bounces to Step 1 without mutating draft.tone.
+      final bounce = ThreeStepAssemblyHelper.selectToneAndSubmit(
+        draft: prefilled,
+        currentStep: PracticeStep.tone,
+        tone: 1,
+        engine: engine,
+        filter: const AllFilter(),
+        lockedSteps: locked,
+        isGuided: true,
+        preventToneLeaking: true,
+      );
+      expect(bounce.shouldSubmit, isFalse);
+      expect(bounce.nextStep, PracticeStep.initial);
+      expect(bounce.draft.tone, isNull);
+
+      // Tapping locked Final is a no-op.
+      final lockedTap = ThreeStepAssemblyHelper.selectEnding(
+        draft: prefilled,
+        currentStep: PracticeStep.initial,
+        finalStr: 'yut',
+        lockedSteps: locked,
+      );
+      expect(lockedTap.draft, prefilled);
+
+      // Selecting None ('') keeps locked Final intact and advances to Tone.
+      final pickedNone = ThreeStepAssemblyHelper.selectStart(
+        draft: prefilled,
+        currentStep: PracticeStep.initial,
+        initial: '',
+        engine: engine,
+        lockedSteps: locked,
+        isGuided: true,
+      );
+      expect(pickedNone.draft.initial, '');
+      expect(pickedNone.draft.nucleus, 'aa');
+      expect(pickedNone.nextStep, PracticeStep.tone);
+
+      final readyTone = ThreeStepAssemblyHelper.selectToneAndSubmit(
+        draft: pickedNone.draft,
+        currentStep: pickedNone.nextStep,
+        tone: 1,
+        engine: engine,
+        filter: const AllFilter(),
+        lockedSteps: locked,
+        isGuided: true,
+        preventToneLeaking: true,
+      );
+      expect(readyTone.shouldSubmit, isTrue);
+      expect(readyTone.draft.tone, 1);
+    });
+
+    test('7.2 locked empty Initial preserves '' and advances from Final to Tone', () {
+      final engine = GuidedConstraintEngine(const [aa1]);
+      const locked = {PracticeStep.initial};
+      const prefilled = DraftInputState(initial: '');
+
+      expect(
+        ThreeStepAssemblyHelper.firstUnlockedStep(locked),
+        PracticeStep.syllableFinal,
+      );
+
+      final pickedEnding = ThreeStepAssemblyHelper.selectEnding(
+        draft: prefilled,
+        currentStep: PracticeStep.syllableFinal,
+        finalStr: 'aa',
+        lockedSteps: locked,
+      );
+      expect(pickedEnding.draft.initial, '');
+      expect(pickedEnding.draft.nucleus, 'aa');
+      expect(pickedEnding.nextStep, PracticeStep.tone);
+
+      final submit = ThreeStepAssemblyHelper.selectToneAndSubmit(
+        draft: pickedEnding.draft,
+        currentStep: pickedEnding.nextStep,
+        tone: 1,
+        engine: engine,
+        filter: const AllFilter(),
+        lockedSteps: locked,
+        isGuided: true,
+        preventToneLeaking: true,
+      );
+      expect(submit.shouldSubmit, isTrue);
+    });
+
+    test('bounces missing unlocked Ending without mutating tone while submitting syllabic nasal m4', () {
+      final engine = GuidedConstraintEngine(const [baa1, m4]);
+
+      // Incomplete 'b' bounces to Final with tone still null.
+      final bounce = ThreeStepAssemblyHelper.selectToneAndSubmit(
+        draft: const DraftInputState(initial: 'b'),
+        currentStep: PracticeStep.tone,
+        tone: 1,
+        engine: engine,
+        filter: const AllFilter(),
+        lockedSteps: const {},
+        isGuided: true,
+        preventToneLeaking: true,
+      );
+      expect(bounce.shouldSubmit, isFalse);
+      expect(bounce.nextStep, PracticeStep.syllableFinal);
+      expect(bounce.draft.tone, isNull);
+
+      // Syllabic nasal 'm' auto-normalizes and submits directly on Tone tap.
+      final nasal = ThreeStepAssemblyHelper.selectToneAndSubmit(
+        draft: const DraftInputState(initial: 'm'),
+        currentStep: PracticeStep.tone,
+        tone: 4,
+        engine: engine,
+        filter: const AllFilter(),
+        lockedSteps: const {},
+        isGuided: true,
+        preventToneLeaking: true,
+      );
+      expect(nasal.shouldSubmit, isTrue);
+      expect(nasal.draft.tone, 4);
     });
   });
 }

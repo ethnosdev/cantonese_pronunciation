@@ -1,16 +1,51 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:cantonese_pronunciation/audio/audio_playback_service.dart';
 import 'package:cantonese_pronunciation/core/curriculum.dart';
 import 'package:cantonese_pronunciation/core/lesson_session.dart';
 import 'package:cantonese_pronunciation/core/lesson_spec.dart';
 import 'package:cantonese_pronunciation/core/review_scheduler.dart';
 import 'package:cantonese_pronunciation/core/syllable_models.dart';
+import 'package:cantonese_pronunciation/data/audio_bundle_repository.dart';
 import 'package:cantonese_pronunciation/data/database_helper.dart';
 import 'package:cantonese_pronunciation/data/progress_repository.dart';
 import 'package:cantonese_pronunciation/data/stats_repository.dart';
+import 'package:cantonese_pronunciation/data/syllable_repository.dart';
+import 'package:cantonese_pronunciation/state/lesson_session_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+class _SilentAudioService implements AudioPlaybackService {
+  @override
+  void Function(String path, Object error)? onPlaybackError;
+
+  @override
+  Future<void> clearTurnSources() async {}
+
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> playFile(String absolutePath) async {}
+
+  @override
+  Future<void> playSequence(
+    List<String> paths, {
+    Duration initialDelay = Duration.zero,
+    Duration gap = const Duration(milliseconds: 450),
+    void Function(int index)? onClipStart,
+    void Function(int index)? onClipEnd,
+  }) async {}
+
+  @override
+  Future<void> stop() async {}
+}
 
 List<SyllableEntry> _testCatalog() {
   final list = <SyllableEntry>[];
@@ -367,5 +402,90 @@ void main() {
         await upgradeDir.delete(recursive: true);
       }
     }
+  });
+
+  test('LessonSessionController enforces 3-step locked slots and 7.4 unguided rules', () async {
+    final syllableRepo = SyllableRepository(dbHelper);
+    await syllableRepo.replaceAllFromEntries(_testCatalog());
+    final bundleRepo = AudioBundleRepository(
+      syllableRepository: syllableRepo,
+      databaseHelper: dbHelper,
+      httpClient: MockClient((_) async => http.Response('', 500)),
+      supportDirProvider: () async => tempDir,
+      tempDirProvider: () async => tempDir,
+    );
+    await statsRepo.saveAutoPlay(false);
+
+    // 7.1: syllableFinal locked, starts on Initial, blocks blank initial, guards Final taps.
+    final ctrl71 = LessonSessionController(
+      syllableRepository: syllableRepo,
+      bundleRepository: bundleRepo,
+      statsRepository: statsRepo,
+      progressRepository: progressRepo,
+      audioService: _SilentAudioService(),
+      lessonSpec: Curriculum.lessonById('u7_l1_start_plus_tone'),
+      random: Random(1),
+    );
+    await ctrl71.initialize();
+    expect(ctrl71.lockedSteps, {PracticeStep.syllableFinal});
+    expect(ctrl71.activeStep, PracticeStep.initial);
+    expect(ctrl71.canSubmitAssembly, isFalse);
+    await ctrl71.selectToneAndSubmit(1);
+    expect(ctrl71.phase, SessionPhase.trial);
+    expect(ctrl71.draft.tone, isNull);
+    final lockedEnding = ctrl71.selectedEnding;
+    ctrl71.selectEnding('eoi');
+    expect(ctrl71.selectedEnding, lockedEnding);
+    ctrl71.selectStart(ctrl71.currentTrial!.target.initial);
+    expect(ctrl71.activeStep, PracticeStep.tone);
+    ctrl71.dispose();
+
+    // 7.2: initial locked, starts on syllableFinal.
+    final ctrl72 = LessonSessionController(
+      syllableRepository: syllableRepo,
+      bundleRepository: bundleRepo,
+      statsRepository: statsRepo,
+      progressRepository: progressRepo,
+      audioService: _SilentAudioService(),
+      lessonSpec: Curriculum.lessonById('u7_l2_vowel_ending_tone'),
+      random: Random(2),
+    );
+    await ctrl72.initialize();
+    expect(ctrl72.lockedSteps, {PracticeStep.initial});
+    expect(ctrl72.activeStep, PracticeStep.syllableFinal);
+    ctrl72.dispose();
+
+    // 7.3: Guided full syllable keeps open initials while preventing checked-tone leaking.
+    final ctrl73 = LessonSessionController(
+      syllableRepository: syllableRepo,
+      bundleRepository: bundleRepo,
+      statsRepository: statsRepo,
+      progressRepository: progressRepo,
+      audioService: _SilentAudioService(),
+      lessonSpec: Curriculum.lessonById('u7_l3_guided_42_keys'),
+      random: Random(3),
+    );
+    await ctrl73.initialize();
+    expect(ctrl73.lockedSteps, isEmpty);
+    ctrl73.selectStart('b');
+    ctrl73.selectEnding('aak');
+    expect(ctrl73.allowedTones(), {1, 2, 3, 4, 5, 6});
+    ctrl73.dispose();
+
+    // 7.4: Unguided keeps allowedStarts/Endings empty and allows all 6 tones.
+    final ctrl74 = LessonSessionController(
+      syllableRepository: syllableRepo,
+      bundleRepository: bundleRepo,
+      statsRepository: statsRepo,
+      progressRepository: progressRepo,
+      audioService: _SilentAudioService(),
+      lessonSpec: Curriculum.lessonById('u7_l4_open_42_keys'),
+      random: Random(4),
+    );
+    await ctrl74.initialize();
+    expect(ctrl74.allowedStarts(), isEmpty);
+    expect(ctrl74.allowedEndings(), isEmpty);
+    expect(ctrl74.allowedTones(), {1, 2, 3, 4, 5, 6});
+    ctrl74.dispose();
   });
 }

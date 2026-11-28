@@ -5,17 +5,17 @@ import 'syllable_models.dart';
 class Curriculum {
   const Curriculum._();
 
-  /// Beginner-friendly tone names (Chao digits hidden in beginner path).
+  /// Plain tone names (Chao digits excluded from interactive labels).
   static const Map<int, String> tonePlainNames = {
-    1: 'High Flat',
+    1: 'High Level',
     2: 'High Rising',
-    3: 'Mid Flat',
+    3: 'Mid Level',
     4: 'Low Falling',
     5: 'Low Rising',
-    6: 'Low Flat',
+    6: 'Low Level',
   };
 
-  /// Formatted plain label for beginner tone choice buttons (`1 · High Flat`).
+  /// Formatted plain label for beginner tone choice buttons (`1 · High Level`).
   static String plainToneLabel(int tone) =>
       '$tone · ${tonePlainNames[tone] ?? ''}';
 
@@ -52,58 +52,54 @@ class Curriculum {
     const UnitSpec(
       id: 'unit_1',
       number: 1,
-      title: 'First Tones',
-      subtitle: 'Hear high, rising, mid, and low pitch shapes',
+      title: 'Core Tones',
     ),
     const UnitSpec(
       id: 'unit_2',
       number: 2,
-      title: 'Soft vs. Air-Puff Starts',
-      subtitle: 'Tell gentle b/d/g apart from air-puff p/t/k',
+      title: 'Stop Initials',
     ),
     const UnitSpec(
       id: 'unit_3',
       number: 3,
       title: 'All Six Tones',
-      subtitle: 'Separate high vs. low rising and flat tones',
     ),
     const UnitSpec(
       id: 'unit_4',
       number: 4,
-      title: 'Remaining Starts',
-      subtitle: 'Master n/l, sharp starts z/c/s/j, gw/kw/w, and ng vs. None',
+      title: 'More Initials',
     ),
     const UnitSpec(
       id: 'unit_5',
       number: 5,
-      title: 'Open Vowels & Basic Endings',
-      subtitle: 'Hear open vowels, glides (-i, -u), and nasal endings (-m, -n, -ng)',
+      title: 'Basic Finals',
     ),
     const UnitSpec(
       id: 'unit_6',
       number: 6,
-      title: 'Vowel Contrasts, Clipped Endings & Hums',
-      subtitle: 'Long aa vs. short a, yu/oe/eo, clipped -p/-t/-k, and hummed syllables',
+      title: 'Advanced Finals',
     ),
     const UnitSpec(
       id: 'unit_7',
       number: 7,
-      title: 'Multi-Slot Assembly to Full Mastery',
-      subtitle: 'Combine Start, Vowel, Ending, and Tone across all 42 keys',
+      title: 'Full Syllables',
     ),
   ];
 
   static final List<LessonSpec> lessons = [
-    // ---------------- Unit 1: First Tones ----------------
+    // ---------------- Unit 1: Core Tones ----------------
     LessonSpec(
       id: 'u1_l1_high_vs_low',
       unitId: 'unit_1',
       numberLabel: '1.1',
-      title: 'High Flat (1) vs. Low Falling (4)',
-      cue: 'Cantonese words change meaning with voice pitch. Compare high flat (1) with low falling (4).',
+      title: 'High (1) & Low (4)',
+      introSummary:
+          'Cantonese words change meaning with voice pitch. Hear the difference between steady High Level (Tone 1) and Low Falling (Tone 4).',
+      phoneticsNote:
+          'Linguists describe Cantonese tone heights with Chao pitch numbers on a 1 (lowest) to 5 (highest) scale, writing start and end pitch as two digits. Tone 1 stays steady near the top of your range (55), while Tone 4 starts low and drops to the bottom (21), often with light vocal fry (creaky voice).',
       poolTier: DatasetTier.pri0And1,
       targetComponent: ComponentType.tone,
-      differentProperty: DifferentProperty.tone,
+      differentProperty: ComponentType.tone,
       choices: const ['1', '4'],
       showContoursOnButtons: true,
       format: ExerciseFormat.choiceCards,
@@ -117,7 +113,7 @@ class Curriculum {
         hearAndCompareItems: [
           HearAndCompareItem(
             value: '1',
-            label: '1 · High Flat',
+            label: '1 · High Level',
             hint: 'Steady high voice pitch',
             preferredSyllable: 'baa1',
             tone: 1,
@@ -131,15 +127,15 @@ class Curriculum {
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Tone?',
-        differentProperty: DifferentProperty.tone,
+        sameDifferentPrompt: 'Same tone?',
+        differentProperty: ComponentType.tone,
       ),
       seedSkills: const [
         ContrastSkill(
           lessonId: 'u1_l1_high_vs_low',
           targetType: 'tone',
           targetValue: '1',
-          displayLabel: 'Tone 1 · High Flat',
+          displayLabel: 'Tone 1 · High Level',
         ),
         ContrastSkill(
           lessonId: 'u1_l1_high_vs_low',
@@ -154,10 +150,13 @@ class Curriculum {
       unitId: 'unit_1',
       numberLabel: '1.2',
       title: 'High Rising (2)',
-      cue: 'Tone 2 climbs upward like asking a quick question. Contrast it against flat 1 and falling 4.',
+      introSummary:
+          'Tone 2 rises clearly upward from middle pitch to high pitch. Contrast High Rising (2) against High Level (1) and Low Falling (4).',
+      phoneticsNote:
+          'Tone 2 carries Chao contour 35, starting around mid pitch and scooping up to the top of your voice like a quick English question. Hearing its upward movement cleanly against steady Tone 1 (55) and sinking Tone 4 (21) sets an anchor for every other contour.',
       poolTier: DatasetTier.pri0And1,
       targetComponent: ComponentType.tone,
-      differentProperty: DifferentProperty.tone,
+      differentProperty: ComponentType.tone,
       choices: const ['1', '2', '4'],
       showContoursOnButtons: true,
       format: ExerciseFormat.choiceCards,
@@ -171,7 +170,7 @@ class Curriculum {
         hearAndCompareItems: [
           HearAndCompareItem(
             value: '1',
-            label: '1 · High Flat',
+            label: '1 · High Level',
             hint: 'Steady and high',
             preferredSyllable: 'saa1',
             tone: 1,
@@ -192,8 +191,8 @@ class Curriculum {
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Tone?',
-        differentProperty: DifferentProperty.tone,
+        sameDifferentPrompt: 'Same tone?',
+        differentProperty: ComponentType.tone,
       ),
       seedSkills: const [
         ContrastSkill(
@@ -208,11 +207,14 @@ class Curriculum {
       id: 'u1_l3_mid_level_3',
       unitId: 'unit_1',
       numberLabel: '1.3',
-      title: 'Mid Flat (3)',
-      cue: 'Tone 3 stays flat in the middle of your voice—lower than 1, and without the drop of 4.',
+      title: 'Mid Level (3)',
+      introSummary:
+          'Tone 3 holds steady right in the middle of your voice. Tell Mid Level (3) apart from Tones 1, 2, and 4.',
+      phoneticsNote:
+          'Tone 3 has Chao contour 33—held level-pitched in a relaxed middle register with no rise and no drop. Notice how it sits noticeably lower than High Level Tone 1 (55), yet stays steady instead of sinking like Low Falling Tone 4 (21).',
       poolTier: DatasetTier.pri0And1,
       targetComponent: ComponentType.tone,
-      differentProperty: DifferentProperty.tone,
+      differentProperty: ComponentType.tone,
       choices: const ['1', '2', '3', '4'],
       showContoursOnButtons: true,
       format: ExerciseFormat.choiceCards,
@@ -227,7 +229,7 @@ class Curriculum {
         hearAndCompareItems: [
           HearAndCompareItem(
             value: '1',
-            label: '1 · High Flat',
+            label: '1 · High Level',
             hint: 'Highest steady pitch',
             preferredSyllable: 'si1',
             tone: 1,
@@ -241,7 +243,7 @@ class Curriculum {
           ),
           HearAndCompareItem(
             value: '3',
-            label: '3 · Mid Flat',
+            label: '3 · Mid Level',
             hint: 'Relaxed middle level',
             preferredSyllable: 'si3',
             tone: 3,
@@ -260,7 +262,7 @@ class Curriculum {
           lessonId: 'u1_l3_mid_level_3',
           targetType: 'tone',
           targetValue: '3',
-          displayLabel: 'Tone 3 · Mid Flat',
+          displayLabel: 'Tone 3 · Mid Level',
         ),
       ],
     ),
@@ -268,11 +270,12 @@ class Curriculum {
       id: 'u1_l4_four_tone_check',
       unitId: 'unit_1',
       numberLabel: '1.4',
-      title: 'Four Tones Without Curves',
-      cue: 'Listen carefully—pitch curves are now hidden on the buttons so your ear takes over.',
+      title: 'Tones 1–4 Check',
+      introSummary:
+          'Pitch curves are hidden on the buttons now—identify Tones 1, 2, 3, and 4 by ear alone.',
       poolTier: DatasetTier.pri0And1,
       targetComponent: ComponentType.tone,
-      differentProperty: DifferentProperty.tone,
+      differentProperty: ComponentType.tone,
       choices: const ['1', '2', '3', '4'],
       showContoursOnButtons: false,
       format: ExerciseFormat.choiceCards,
@@ -285,16 +288,19 @@ class Curriculum {
           e.tone <= 4,
     ),
 
-    // ---------------- Unit 2: Soft vs. Air-Puff Starts ----------------
+    // ---------------- Unit 2: Stop Initials ----------------
     LessonSpec(
       id: 'u2_l1_b_vs_p',
       unitId: 'unit_2',
       numberLabel: '2.1',
-      title: 'Soft b vs. Air-Puff p',
-      cue: 'In Cantonese, both b and p are voiceless—p releases a strong puff of air while b does not.',
+      title: 'b vs. p',
+      introSummary:
+          'Neither Cantonese b nor p uses vocal-cord buzz like English b. Tell them apart by breath: p releases a sharp puff of air while b does not.',
+      phoneticsNote:
+          'The opening consonant of a syllable is its initial consonant, and both b and p are voiceless bilabial stops made by closing the lips. The key contrast is aspiration (a burst of breath on release): Jyutping b is unaspirated IPA [p] (close to the p in English "spin"), whereas Jyutping p is aspirated IPA [pʰ] (like the p in "pin"). Note that IPA brackets mark exact speech sounds and differ from Jyutping spelling letters.',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.initial,
-      differentProperty: DifferentProperty.initial,
+      differentProperty: ComponentType.initial,
       choices: const ['b', 'p'],
       format: ExerciseFormat.choiceCards,
       coreCount: 20,
@@ -305,33 +311,33 @@ class Curriculum {
         hearAndCompareItems: [
           HearAndCompareItem(
             value: 'b',
-            label: 'b · Soft',
-            hint: 'Gentle lip release, no puff of air',
+            label: 'b · Unaspirated',
+            hint: 'Lip closure released without a breath burst',
             preferredSyllable: 'baa1',
           ),
           HearAndCompareItem(
             value: 'p',
-            label: 'p · Air-Puff',
+            label: 'p · Aspirated',
             hint: 'Sharp burst of breath',
             preferredSyllable: 'paa1',
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Start?',
-        differentProperty: DifferentProperty.initial,
+        sameDifferentPrompt: 'Same initial consonant?',
+        differentProperty: ComponentType.initial,
       ),
       seedSkills: const [
         ContrastSkill(
           lessonId: 'u2_l1_b_vs_p',
           targetType: 'initial',
           targetValue: 'b',
-          displayLabel: 'Start b (soft)',
+          displayLabel: 'Initial b',
         ),
         ContrastSkill(
           lessonId: 'u2_l1_b_vs_p',
           targetType: 'initial',
           targetValue: 'p',
-          displayLabel: 'Start p (air-puff)',
+          displayLabel: 'Initial p',
         ),
       ],
     ),
@@ -339,11 +345,14 @@ class Curriculum {
       id: 'u2_l2_d_vs_t',
       unitId: 'unit_2',
       numberLabel: '2.2',
-      title: 'Soft d vs. Air-Puff t',
-      cue: 'Same air-puff contrast at the tongue tip: soft d has no breath burst, t pushes air out.',
+      title: 'd vs. t',
+      introSummary:
+          'Tell tongue-tip stops d and t apart by breath burst: t pushes out a sharp puff of air, while d releases cleanly without it.',
+      phoneticsNote:
+          'Both d and t are voiceless alveolar stops formed with the tongue tip pressed against the ridge behind your upper teeth. Just like b and p, Cantonese d is unaspirated IPA [t] (closer to the t in English "stop") and t is aspirated IPA [tʰ] (like the t in "top").',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.initial,
-      differentProperty: DifferentProperty.initial,
+      differentProperty: ComponentType.initial,
       choices: const ['d', 't'],
       format: ExerciseFormat.choiceCards,
       coreCount: 20,
@@ -354,33 +363,33 @@ class Curriculum {
         hearAndCompareItems: [
           HearAndCompareItem(
             value: 'd',
-            label: 'd · Soft',
-            hint: 'Crisp tongue tap, no air puff',
+            label: 'd · Unaspirated',
+            hint: 'Tongue tip release without a breath burst',
             preferredSyllable: 'daa1',
           ),
           HearAndCompareItem(
             value: 't',
-            label: 't · Air-Puff',
-            hint: 'Releases a puff of air',
+            label: 't · Aspirated',
+            hint: 'Sharp burst of breath',
             preferredSyllable: 'taa1',
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Start?',
-        differentProperty: DifferentProperty.initial,
+        sameDifferentPrompt: 'Same initial consonant?',
+        differentProperty: ComponentType.initial,
       ),
       seedSkills: const [
         ContrastSkill(
           lessonId: 'u2_l2_d_vs_t',
           targetType: 'initial',
           targetValue: 'd',
-          displayLabel: 'Start d (soft)',
+          displayLabel: 'Initial d',
         ),
         ContrastSkill(
           lessonId: 'u2_l2_d_vs_t',
           targetType: 'initial',
           targetValue: 't',
-          displayLabel: 'Start t (air-puff)',
+          displayLabel: 'Initial t',
         ),
       ],
     ),
@@ -388,11 +397,14 @@ class Curriculum {
       id: 'u2_l3_g_vs_k',
       unitId: 'unit_2',
       numberLabel: '2.3',
-      title: 'Soft g vs. Air-Puff k',
-      cue: 'Contrast the back-of-mouth stops: soft g stays clean, while k pushes out a breath burst.',
+      title: 'g vs. k',
+      introSummary:
+          'Contrast the back-of-mouth stops g and k: g releases with no breath burst, while k pushes out a clear puff of air.',
+      phoneticsNote:
+          'Cantonese g and k are voiceless velar stops formed by raising the back of the tongue against the velum at the back of your mouth. Unaspirated g corresponds to IPA [k] (like the k in English "sky"), whereas aspirated k corresponds to IPA [kʰ] (like the k in "key").',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.initial,
-      differentProperty: DifferentProperty.initial,
+      differentProperty: ComponentType.initial,
       choices: const ['g', 'k'],
       format: ExerciseFormat.choiceCards,
       coreCount: 20,
@@ -403,33 +415,33 @@ class Curriculum {
         hearAndCompareItems: [
           HearAndCompareItem(
             value: 'g',
-            label: 'g · Soft',
-            hint: 'Clean release at back of tongue',
+            label: 'g · Unaspirated',
+            hint: 'Back-tongue release without a breath burst',
             preferredSyllable: 'gaa1',
           ),
           HearAndCompareItem(
             value: 'k',
-            label: 'k · Air-Puff',
-            hint: 'Strong puff of breath',
+            label: 'k · Aspirated',
+            hint: 'Strong burst of breath',
             preferredSyllable: 'kaa1',
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Start?',
-        differentProperty: DifferentProperty.initial,
+        sameDifferentPrompt: 'Same initial consonant?',
+        differentProperty: ComponentType.initial,
       ),
       seedSkills: const [
         ContrastSkill(
           lessonId: 'u2_l3_g_vs_k',
           targetType: 'initial',
           targetValue: 'g',
-          displayLabel: 'Start g (soft)',
+          displayLabel: 'Initial g',
         ),
         ContrastSkill(
           lessonId: 'u2_l3_g_vs_k',
           targetType: 'initial',
           targetValue: 'k',
-          displayLabel: 'Start k (air-puff)',
+          displayLabel: 'Initial k',
         ),
       ],
     ),
@@ -437,8 +449,9 @@ class Curriculum {
       id: 'u2_l4_stops_review',
       unitId: 'unit_2',
       numberLabel: '2.4',
-      title: 'All Six Stop Starts',
-      cue: 'Pick the Start you hear across all six soft and air-puff stops (b, p, d, t, g, k).',
+      title: 'All Six Stops',
+      introSummary:
+          'Identify all six stop initials (b, p, d, t, g, k) by both mouth position and breath burst.',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.initial,
       choices: const ['b', 'p', 'd', 't', 'g', 'k'],
@@ -453,7 +466,8 @@ class Curriculum {
       unitId: 'unit_2',
       numberLabel: 'R2',
       title: 'Units 1–2 Review',
-      cue: 'Mix tones from Unit 1 with soft and air-puff starts from Unit 2.',
+      introSummary:
+          'Review Tones 1–4 from Unit 1 alongside all six stop initials from Unit 2.',
       poolTier: DatasetTier.pri0And1,
       format: ExerciseFormat.choiceCards,
       coreCount: 20,
@@ -466,11 +480,14 @@ class Curriculum {
       id: 'u3_l1_rising_2_vs_5',
       unitId: 'unit_3',
       numberLabel: '3.1',
-      title: 'High Rising (2) vs. Low Rising (5)',
-      cue: 'Both tones rise, but 2 climbs much higher than gentle low-rising 5.',
+      title: 'Rising Tones (2 & 5)',
+      introSummary:
+          'Both Tone 2 and Tone 5 rise in pitch, but Tone 2 climbs much higher than gentle Low Rising (5).',
+      phoneticsNote:
+          'High Rising Tone 2 (35) starts near mid pitch and climbs all the way to the top of your range. Low Rising Tone 5 (23) begins lower and finishes near mid height, making its rise noticeably shorter and gentler.',
       poolTier: DatasetTier.pri0And1,
       targetComponent: ComponentType.tone,
-      differentProperty: DifferentProperty.tone,
+      differentProperty: ComponentType.tone,
       choices: const ['2', '5'],
       showContoursOnButtons: true,
       format: ExerciseFormat.choiceCards,
@@ -498,8 +515,8 @@ class Curriculum {
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Tone?',
-        differentProperty: DifferentProperty.tone,
+        sameDifferentPrompt: 'Same tone?',
+        differentProperty: ComponentType.tone,
       ),
       seedSkills: const [
         ContrastSkill(
@@ -514,11 +531,14 @@ class Curriculum {
       id: 'u3_l2_level_3_vs_6',
       unitId: 'unit_3',
       numberLabel: '3.2',
-      title: 'Mid Flat (3) vs. Low Flat (6)',
-      cue: 'Tone 6 sits flat and low, without sinking down like Tone 4.',
+      title: 'Level Tones (3 & 6)',
+      introSummary:
+          'Both Tone 3 and Tone 6 stay steady without rising or falling—listen for Tone 6 sitting noticeably lower than Tone 3.',
+      phoneticsNote:
+          'Mid Level Tone 3 (33) holds steady in the middle of your voice, while Low Level Tone 6 (22) sits one clear step below it without dropping at the end. Compare Tone 6 (22) against Low Falling Tone 4 (21): Tone 6 stays level rather than sinking to the bottom.',
       poolTier: DatasetTier.pri0And1,
       targetComponent: ComponentType.tone,
-      differentProperty: DifferentProperty.tone,
+      differentProperty: ComponentType.tone,
       choices: const ['3', '6'],
       showContoursOnButtons: true,
       format: ExerciseFormat.choiceCards,
@@ -532,29 +552,29 @@ class Curriculum {
         hearAndCompareItems: [
           HearAndCompareItem(
             value: '3',
-            label: '3 · Mid Flat',
+            label: '3 · Mid Level',
             hint: 'Steady middle pitch',
             preferredSyllable: 'si3',
             tone: 3,
           ),
           HearAndCompareItem(
             value: '6',
-            label: '6 · Low Flat',
+            label: '6 · Low Level',
             hint: 'Steady low pitch',
             preferredSyllable: 'si6',
             tone: 6,
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Tone?',
-        differentProperty: DifferentProperty.tone,
+        sameDifferentPrompt: 'Same tone?',
+        differentProperty: ComponentType.tone,
       ),
       seedSkills: const [
         ContrastSkill(
           lessonId: 'u3_l2_level_3_vs_6',
           targetType: 'tone',
           targetValue: '6',
-          displayLabel: 'Tone 6 · Low Flat',
+          displayLabel: 'Tone 6 · Low Level',
         ),
       ],
     ),
@@ -562,8 +582,9 @@ class Curriculum {
       id: 'u3_l3_low_tones_mix',
       unitId: 'unit_3',
       numberLabel: '3.3',
-      title: 'Mid & Low Tones (2, 3, 4, 5, 6)',
-      cue: 'Tell apart the five closely spaced mid and low tones without button curves.',
+      title: 'Mid & Low Tones',
+      introSummary:
+          'Tell apart the five closely spaced mid and low tones (2, 3, 4, 5, and 6) with pitch curves hidden on the buttons.',
       poolTier: DatasetTier.pri0And1,
       targetComponent: ComponentType.tone,
       choices: const ['2', '3', '4', '5', '6'],
@@ -581,8 +602,9 @@ class Curriculum {
       id: 'u3_l4_six_tone_check',
       unitId: 'unit_3',
       numberLabel: '3.4',
-      title: 'All Six Tones (1–6)',
-      cue: 'Unit 3 check: distinguish all six Cantonese tones across open and nasal syllables.',
+      title: 'Six-Tone Check',
+      introSummary:
+          'Identify all six Cantonese tones (1–6) across open and nasal syllables without button curves.',
       poolTier: DatasetTier.pri0And1,
       targetComponent: ComponentType.tone,
       choices: const ['1', '2', '3', '4', '5', '6'],
@@ -598,7 +620,8 @@ class Curriculum {
       unitId: 'unit_3',
       numberLabel: 'R3',
       title: 'Units 1–3 Review',
-      cue: 'Review all six tones alongside soft and air-puff starts.',
+      introSummary:
+          'Review all six tones together with the six stop initials from Unit 2.',
       poolTier: DatasetTier.pri0And1,
       format: ExerciseFormat.choiceCards,
       coreCount: 24,
@@ -606,16 +629,19 @@ class Curriculum {
       cumulativeReviewUpToUnit: 3,
     ),
 
-    // ---------------- Unit 4: Remaining Starts ----------------
+    // ---------------- Unit 4: More Initials ----------------
     LessonSpec(
       id: 'u4_l1_n_vs_l',
       unitId: 'unit_4',
       numberLabel: '4.1',
-      title: 'Nasal n vs. Clear l',
-      cue: 'Start n hums gently through the nose before opening; l lets air flow around the tongue.',
+      title: 'n vs. l',
+      introSummary:
+          'Initial n lets voice resonate through the nose before the tongue releases; initial l lets air flow smoothly around the sides of the tongue.',
+      phoneticsNote:
+          'Both Jyutping n (IPA [n]) and l (IPA [l]) place the tongue tip against the ridge behind your upper teeth, but n lowers the nasal passage while l keeps airflow oral along the tongue\'s sides. Many modern Hong Kong speakers merge initial n into l in casual speech, so careful listening helps keep standard pairs clear.',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.initial,
-      differentProperty: DifferentProperty.initial,
+      differentProperty: ComponentType.initial,
       choices: const ['n', 'l'],
       format: ExerciseFormat.choiceCards,
       coreCount: 20,
@@ -627,7 +653,7 @@ class Curriculum {
           HearAndCompareItem(
             value: 'n',
             label: 'n · Nasal',
-            hint: 'Buzz through nose first',
+            hint: 'Resonates through nose first',
             preferredSyllable: 'naa4',
           ),
           HearAndCompareItem(
@@ -638,21 +664,21 @@ class Curriculum {
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Start?',
-        differentProperty: DifferentProperty.initial,
+        sameDifferentPrompt: 'Same initial consonant?',
+        differentProperty: ComponentType.initial,
       ),
       seedSkills: const [
         ContrastSkill(
           lessonId: 'u4_l1_n_vs_l',
           targetType: 'initial',
           targetValue: 'n',
-          displayLabel: 'Start n (nasal)',
+          displayLabel: 'Initial n',
         ),
         ContrastSkill(
           lessonId: 'u4_l1_n_vs_l',
           targetType: 'initial',
           targetValue: 'l',
-          displayLabel: 'Start l (clear)',
+          displayLabel: 'Initial l',
         ),
       ],
     ),
@@ -660,8 +686,11 @@ class Curriculum {
       id: 'u4_l2_m_f_h',
       unitId: 'unit_4',
       numberLabel: '4.2',
-      title: 'Lip & Breath Starts (m, f, h)',
-      cue: 'Hear lip-nasal m alongside breathy f and h.',
+      title: 'm, f, h',
+      introSummary:
+          'Contrast closed-lip nasal m with lip-teeth fricative f and open breathy h.',
+      phoneticsNote:
+          'Initial m (IPA [m]) seals the lips while sound resonates through the nose. Initial f (IPA [f], lower lip brushing the upper teeth) and h (IPA [h], open throat airflow) are voiceless fricatives that sound close to English f and h.',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.initial,
       choices: const ['m', 'f', 'h'],
@@ -676,7 +705,7 @@ class Curriculum {
           HearAndCompareItem(
             value: 'm',
             label: 'm · Lips closed',
-            hint: 'Hum on the lips',
+            hint: 'Nasal closure on the lips',
             preferredSyllable: 'maa1',
           ),
           HearAndCompareItem(
@@ -688,7 +717,7 @@ class Curriculum {
           HearAndCompareItem(
             value: 'h',
             label: 'h · Open breath',
-            hint: 'Soft breathy h',
+            hint: 'Open breathy h',
             preferredSyllable: 'haa1',
           ),
         ],
@@ -698,19 +727,19 @@ class Curriculum {
           lessonId: 'u4_l2_m_f_h',
           targetType: 'initial',
           targetValue: 'm',
-          displayLabel: 'Start m',
+          displayLabel: 'Initial m',
         ),
         ContrastSkill(
           lessonId: 'u4_l2_m_f_h',
           targetType: 'initial',
           targetValue: 'f',
-          displayLabel: 'Start f',
+          displayLabel: 'Initial f',
         ),
         ContrastSkill(
           lessonId: 'u4_l2_m_f_h',
           targetType: 'initial',
           targetValue: 'h',
-          displayLabel: 'Start h',
+          displayLabel: 'Initial h',
         ),
       ],
     ),
@@ -718,8 +747,11 @@ class Curriculum {
       id: 'u4_l3_z_c_s_j',
       unitId: 'unit_4',
       numberLabel: '4.3',
-      title: 'Sharp Starts (z, c, s, j)',
-      cue: 'Ear anchors: z sounds like ds in kids, c adds a sharp ts air puff, and j sounds like y in yes.',
+      title: 'z, c, s, j',
+      introSummary:
+          'Hear unaspirated z (like ds in kids), aspirated c (sharp ts), hissing s, and glide j (always like y in yes).',
+      phoneticsNote:
+          'Jyutping z (IPA [ts]) and c (IPA [tsʰ]) are alveolar affricates pairing a brief tongue-tip stop with an s release—z has no breath burst, while c is strongly aspirated. Initial s (IPA [s]) is a smooth fricative, and Jyutping j is always the palatal glide IPA [j] (like y in "yes", never English j). Before rounded vowels (yu, oe, eo), z, c, and s also take on light lip rounding.',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.initial,
       choices: const ['z', 'c', 's', 'j'],
@@ -736,13 +768,13 @@ class Curriculum {
         hearAndCompareItems: [
           HearAndCompareItem(
             value: 'z',
-            label: 'z · Soft ds',
-            hint: 'No air puff (ds)',
+            label: 'z · Unaspirated ds',
+            hint: 'No breath burst (ds)',
             preferredSyllable: 'zaa1',
           ),
           HearAndCompareItem(
             value: 'c',
-            label: 'c · Air-puff ts',
+            label: 'c · Aspirated ts',
             hint: 'Sharp breath burst (ts)',
             preferredSyllable: 'caa1',
           ),
@@ -765,25 +797,25 @@ class Curriculum {
           lessonId: 'u4_l3_z_c_s_j',
           targetType: 'initial',
           targetValue: 'z',
-          displayLabel: 'Start z (ds)',
+          displayLabel: 'Initial z',
         ),
         ContrastSkill(
           lessonId: 'u4_l3_z_c_s_j',
           targetType: 'initial',
           targetValue: 'c',
-          displayLabel: 'Start c (ts)',
+          displayLabel: 'Initial c',
         ),
         ContrastSkill(
           lessonId: 'u4_l3_z_c_s_j',
           targetType: 'initial',
           targetValue: 's',
-          displayLabel: 'Start s',
+          displayLabel: 'Initial s',
         ),
         ContrastSkill(
           lessonId: 'u4_l3_z_c_s_j',
           targetType: 'initial',
           targetValue: 'j',
-          displayLabel: 'Start j (y)',
+          displayLabel: 'Initial j',
         ),
       ],
     ),
@@ -791,8 +823,11 @@ class Curriculum {
       id: 'u4_l4_gw_kw_w',
       unitId: 'unit_4',
       numberLabel: '4.4',
-      title: 'Rounded gw, kw, w (vs. g, k)',
-      cue: 'Round your lips on gw and kw—hear how that w-glide sets them apart from plain g, k, and w.',
+      title: 'gw, kw, w (vs. g, k)',
+      introSummary:
+          'Notice the rounded-lip w glide inside gw and kw compared with plain g, plain k, and standalone w.',
+      phoneticsNote:
+          'Jyutping gw (IPA [kʷ]) and kw (IPA [kʷʰ]) are labialized velar stops: your back tongue closes for g or k while your lips round at the same time (like "qu" in "square" without breath vs. "queen" with breath). Contrast them with unrounded g (IPA [k]) and k (IPA [kʰ]), and with pure lip-glide w (IPA [w]).',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.initial,
       choices: const ['g', 'k', 'gw', 'kw', 'w'],
@@ -811,25 +846,25 @@ class Curriculum {
           HearAndCompareItem(
             value: 'g',
             label: 'g · Plain',
-            hint: 'Unrounded soft stop',
+            hint: 'Unrounded, unaspirated stop',
             preferredSyllable: 'gaa1',
           ),
           HearAndCompareItem(
             value: 'k',
-            label: 'k · Plain puff',
-            hint: 'Unrounded air puff',
+            label: 'k · Plain aspirated',
+            hint: 'Unrounded, aspirated stop',
             preferredSyllable: 'kaa1',
           ),
           HearAndCompareItem(
             value: 'gw',
             label: 'gw · Rounded',
-            hint: 'Soft g + rounded lips',
+            hint: 'Unaspirated g + rounded lips',
             preferredSyllable: 'gwaa1',
           ),
           HearAndCompareItem(
             value: 'kw',
-            label: 'kw · Rounded puff',
-            hint: 'Air-puff k + rounded lips',
+            label: 'kw · Rounded aspirated',
+            hint: 'Aspirated k + rounded lips',
             preferredSyllable: 'kwaa1',
           ),
           HearAndCompareItem(
@@ -845,19 +880,19 @@ class Curriculum {
           lessonId: 'u4_l4_gw_kw_w',
           targetType: 'initial',
           targetValue: 'gw',
-          displayLabel: 'Start gw',
+          displayLabel: 'Initial gw',
         ),
         ContrastSkill(
           lessonId: 'u4_l4_gw_kw_w',
           targetType: 'initial',
           targetValue: 'kw',
-          displayLabel: 'Start kw',
+          displayLabel: 'Initial kw',
         ),
         ContrastSkill(
           lessonId: 'u4_l4_gw_kw_w',
           targetType: 'initial',
           targetValue: 'w',
-          displayLabel: 'Start w',
+          displayLabel: 'Initial w',
         ),
       ],
     ),
@@ -865,11 +900,14 @@ class Curriculum {
       id: 'u4_l5_ng_vs_none',
       unitId: 'unit_4',
       numberLabel: '4.5',
-      title: 'Back-Nasal ng vs. None',
-      cue: 'Hear when a syllable starts with a back-throat ng hum versus starting cleanly with None.',
+      title: 'ng vs. None',
+      introSummary:
+          'Listen for a back-throat ng onset versus a syllable that begins directly on the vowel with no initial consonant.',
+      phoneticsNote:
+          'Jyutping ng at the start of a word is the velar nasal IPA [ŋ]—the same sound as the end of English "sing", placed at the opening of a syllable. A syllable with no initial consonant has a zero initial, labeled None in Lesson controls and written as ∅ in Soundboard and Practice slot previews. In casual Hong Kong speech, speakers often drop initial ng or add it before vowel-initial words, so ear training helps lock in standard forms.',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.initial,
-      differentProperty: DifferentProperty.initial,
+      differentProperty: ComponentType.initial,
       choices: const ['ng', ''],
       format: ExerciseFormat.choiceCards,
       coreCount: 20,
@@ -886,27 +924,27 @@ class Curriculum {
           ),
           HearAndCompareItem(
             value: '',
-            label: 'None · Open start',
+            label: 'None · Zero initial',
             hint: 'Begins directly on the vowel',
             preferredSyllable: 'aa4',
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Start?',
-        differentProperty: DifferentProperty.initial,
+        sameDifferentPrompt: 'Same initial consonant?',
+        differentProperty: ComponentType.initial,
       ),
       seedSkills: const [
         ContrastSkill(
           lessonId: 'u4_l5_ng_vs_none',
           targetType: 'initial',
           targetValue: 'ng',
-          displayLabel: 'Start ng',
+          displayLabel: 'Initial ng',
         ),
         ContrastSkill(
           lessonId: 'u4_l5_ng_vs_none',
           targetType: 'initial',
           targetValue: '',
-          displayLabel: 'Start None',
+          displayLabel: 'Initial None',
         ),
       ],
     ),
@@ -915,7 +953,8 @@ class Curriculum {
       unitId: 'unit_4',
       numberLabel: 'R4',
       title: 'Units 1–4 Review',
-      cue: 'Mix all six tones with every start consonant learned so far.',
+      introSummary:
+          'Review all six tones together with every initial consonant taught in Units 2 and 4.',
       poolTier: DatasetTier.pri0And1,
       format: ExerciseFormat.choiceCards,
       coreCount: 24,
@@ -923,13 +962,16 @@ class Curriculum {
       cumulativeReviewUpToUnit: 4,
     ),
 
-    // ---------------- Unit 5: Open Vowels & Basic Endings ----------------
+    // ---------------- Unit 5: Basic Finals ----------------
     LessonSpec(
       id: 'u5_l1_open_vowels',
       unitId: 'unit_5',
       numberLabel: '5.1',
-      title: 'Five Open Vowels (aa, e, i, o, u)',
-      cue: 'Master the five open vowels (`aa` sounds like "ah"). Short `a` only appears with endings later.',
+      title: 'Open Vowels (aa–u)',
+      introSummary:
+          'Hear the five open vowels aa, e, i, o, and u when no ending consonant follows. Short a is saved for closed syllables in Unit 6.',
+      phoneticsNote:
+          'In Cantonese, everything after the initial consonant forms the Final, built from a vowel nucleus plus an optional ending coda. When the coda is empty, the five open vowels correspond to long broad qualities: aa = IPA [aː], e = IPA [ɛː], i = IPA [iː], o = IPA [ɔː], and u = IPA [uː].',
       poolTier: DatasetTier.pri0And1,
       targetComponent: ComponentType.nucleus,
       choices: const ['aa', 'e', 'i', 'o', 'u'],
@@ -1011,8 +1053,12 @@ class Curriculum {
       id: 'u5_l2_glide_endings',
       unitId: 'unit_5',
       numberLabel: '5.2',
-      title: 'Glide Endings (None, -i, -u)',
-      cue: 'Listen for whether the vowel stays open (None) or glides toward -i or -u at the end.',
+      title: 'Vowel Glides (-i, -u)',
+      introSummary:
+          'Hear whether a syllable ends directly on its vowel (None) or glides upward toward -i or -u.',
+      phoneticsNote:
+          'The trailing sound after a vowel nucleus is its coda (final element), making Final = Vowel + Coda. Front glide -i (IPA [i]) lifts the tongue toward "ee", and rounded glide -u (IPA [u]) rounds the lips toward "oo". Adding a glide makes the preceding vowel shorter and slightly higher in ei (IPA [ei]) and ou (IPA [ou]).',
+      trialPrompt: 'Which vowel glide do you hear?',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.coda,
       choices: const ['', 'i', 'u'],
@@ -1049,19 +1095,19 @@ class Curriculum {
           lessonId: 'u5_l2_glide_endings',
           targetType: 'coda',
           targetValue: '',
-          displayLabel: 'Ending None (open)',
+          displayLabel: 'Coda None',
         ),
         ContrastSkill(
           lessonId: 'u5_l2_glide_endings',
           targetType: 'coda',
           targetValue: 'i',
-          displayLabel: 'Ending -i',
+          displayLabel: 'Coda -i',
         ),
         ContrastSkill(
           lessonId: 'u5_l2_glide_endings',
           targetType: 'coda',
           targetValue: 'u',
-          displayLabel: 'Ending -u',
+          displayLabel: 'Coda -u',
         ),
       ],
     ),
@@ -1069,11 +1115,15 @@ class Curriculum {
       id: 'u5_l3_nasal_endings',
       unitId: 'unit_5',
       numberLabel: '5.3',
-      title: 'Nasal Endings (-m, -n, -ng)',
-      cue: 'Hear where the hum closes: -m shuts the lips, -n taps the tongue tip, -ng closes at the back.',
+      title: 'Final Nasals (-m/n/ng)',
+      introSummary:
+          'Identify where nasal resonance closes at the end of a syllable: -m shuts the lips, -n taps behind the teeth, and -ng closes at the back.',
+      phoneticsNote:
+          'Cantonese allows three nasal codas: bilabial -m (IPA [m]), alveolar -n (IPA [n]), and velar -ng (IPA [ŋ]). Before velar -ng, high vowels relax slightly—so -ing sounds like IPA [ɪŋ] (closer to English "sing") and -ung sounds like IPA [ʊŋ] (closer to "ohng").',
+      trialPrompt: 'Which final consonant do you hear?',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.coda,
-      differentProperty: DifferentProperty.coda,
+      differentProperty: ComponentType.coda,
       choices: const ['m', 'n', 'ng'],
       format: ExerciseFormat.choiceCards,
       coreCount: 24,
@@ -1098,32 +1148,32 @@ class Curriculum {
           HearAndCompareItem(
             value: 'ng',
             label: '-ng · Back throat',
-            hint: 'Open mouth, back nasal hum',
+            hint: 'Open mouth, back nasal close',
             preferredSyllable: 'saang1',
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Ending?',
-        differentProperty: DifferentProperty.coda,
+        sameDifferentPrompt: 'Same final consonant?',
+        differentProperty: ComponentType.coda,
       ),
       seedSkills: const [
         ContrastSkill(
           lessonId: 'u5_l3_nasal_endings',
           targetType: 'coda',
           targetValue: 'm',
-          displayLabel: 'Ending -m',
+          displayLabel: 'Coda -m',
         ),
         ContrastSkill(
           lessonId: 'u5_l3_nasal_endings',
           targetType: 'coda',
           targetValue: 'n',
-          displayLabel: 'Ending -n',
+          displayLabel: 'Coda -n',
         ),
         ContrastSkill(
           lessonId: 'u5_l3_nasal_endings',
           targetType: 'coda',
           targetValue: 'ng',
-          displayLabel: 'Ending -ng',
+          displayLabel: 'Coda -ng',
         ),
       ],
     ),
@@ -1132,7 +1182,8 @@ class Curriculum {
       unitId: 'unit_5',
       numberLabel: 'R5',
       title: 'Units 1–5 Review',
-      cue: 'Review open vowels, glides, and nasal endings alongside tones and starts.',
+      introSummary:
+          'Review tones and initial consonants alongside open vowels, vowel glides, and nasal codas.',
       poolTier: DatasetTier.pri0And1,
       format: ExerciseFormat.choiceCards,
       coreCount: 24,
@@ -1140,16 +1191,19 @@ class Curriculum {
       cumulativeReviewUpToUnit: 5,
     ),
 
-    // ---------------- Unit 6: Contrasts, Clipped Endings & Hums ----------------
+    // ---------------- Unit 6: Advanced Finals ----------------
     LessonSpec(
       id: 'u6_l1_aa_vs_a',
       unitId: 'unit_6',
       numberLabel: '6.1',
-      title: 'Long aa vs. Short a (With Endings)',
-      cue: 'Long aa stretches clearly before the ending (saam); short a snaps quickly into the ending (sam).',
+      title: 'Long aa vs. Short a',
+      introSummary:
+          'Contrast long wide aa (like saam) against short relaxed a (like sam) before the same ending.',
+      phoneticsNote:
+          'Long aa (IPA [aː]) holds the jaw wide open before the coda, whereas short a (IPA [ɐ]) snaps quickly into the coda with a shorter, more central sound similar to the vowel in English "cup". Short a never stands alone without a coda, so length and vowel quality work together before -i, -u, nasals, and stops.',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.nucleus,
-      differentProperty: DifferentProperty.nucleus,
+      differentProperty: ComponentType.nucleus,
       choices: const ['aa', 'a'],
       format: ExerciseFormat.choiceCards,
       coreCount: 20,
@@ -1163,26 +1217,26 @@ class Curriculum {
           HearAndCompareItem(
             value: 'aa',
             label: 'aa · Long',
-            hint: 'Held wide "ah" (saam1)',
+            hint: 'Held wide "ah"',
             preferredSyllable: 'saam1',
           ),
           HearAndCompareItem(
             value: 'a',
             label: 'a · Short',
-            hint: 'Quick central "uh" (sam1)',
+            hint: 'Quick central "uh"',
             preferredSyllable: 'sam1',
           ),
         ],
         sameDifferentCount: 2,
-        sameDifferentPrompt: 'Same Vowel?',
-        differentProperty: DifferentProperty.nucleus,
+        sameDifferentPrompt: 'Same vowel?',
+        differentProperty: ComponentType.nucleus,
       ),
       seedSkills: const [
         ContrastSkill(
           lessonId: 'u6_l1_aa_vs_a',
           targetType: 'nucleus',
           targetValue: 'a',
-          displayLabel: 'Vowel a (short)',
+          displayLabel: 'Vowel a',
         ),
       ],
     ),
@@ -1190,8 +1244,11 @@ class Curriculum {
       id: 'u6_l2_yu_oe_eo',
       unitId: 'unit_6',
       numberLabel: '6.2',
-      title: 'Rounded Front Vowels (yu, oe, eo)',
-      cue: 'Keep lips rounded while contrasting high yu against open oe (syu1/soe1) and short eo before -n/-t (syun1/seon1).',
+      title: 'Rounded: yu, oe, eo',
+      introSummary:
+          'Contrast the three rounded front and central vowels: high tight yu, open mid oe, and short closed eo (used before -n and -t).',
+      phoneticsNote:
+          'To produce yu (IPA [yː]), hold your tongue in position for IPA [iː] ("ee") while rounding your lips into a tight circle. Vowel oe (IPA [œː]) is an open-mid front rounded sound used in open syllables and before -ng/-k, while short central rounded eo (IPA [ɵ]) replaces oe before -i, -n, and -t (so you hear syu1 vs. soe1 in open syllables and syun1 vs. seon1 before -n).',
       poolTier: DatasetTier.pri0And1,
       targetComponent: ComponentType.nucleus,
       choices: const ['yu', 'oe', 'eo'],
@@ -1220,19 +1277,19 @@ class Curriculum {
           HearAndCompareItem(
             value: 'yu',
             label: 'yu · High rounded',
-            hint: 'Say "ee" with rounded lips (syu1)',
+            hint: 'Say "ee" with rounded lips',
             preferredSyllable: 'syu1',
           ),
           HearAndCompareItem(
             value: 'oe',
             label: 'oe · Open rounded',
-            hint: 'Open rounded mid sound (soe1 / soeng1)',
+            hint: 'Open rounded mid sound',
             preferredSyllable: 'soe1',
           ),
           HearAndCompareItem(
             value: 'eo',
             label: 'eo · Closed rounded',
-            hint: 'Tight short rounded vowel before -n/-t (seon1)',
+            hint: 'Short rounded vowel before -n/-t',
             preferredSyllable: 'seon1',
           ),
         ],
@@ -1262,8 +1319,12 @@ class Curriculum {
       id: 'u6_l3_checked_stops',
       unitId: 'unit_6',
       numberLabel: '6.3',
-      title: 'Clipped Endings (-p, -t, -k)',
-      cue: 'Mouth snaps shut without popping air out—always short in tones 1, 3, or 6.',
+      title: 'Final Stops (-p/t/k)',
+      introSummary:
+          'Hear unreleased final stops -p, -t, and -k cut the vowel short with no air puff afterward.',
+      phoneticsNote:
+          'Codas -p (IPA [p]), -t (IPA [t]), and -k (IPA [k]) close the lips, tongue tip, or back of tongue and stay closed—no breath releases at the end. Linguists call syllables ending in -p, -t, or -k checked tones (entering tones); their abrupt cut limits pitch to three level heights matching Tones 1, 3, and 6 (short Chao values 5, 3, and 2, paralleling 55, 33, and 22). Note that i and u also relax before -k into IPA [ɪk] and IPA [ʊk].',
+      trialPrompt: 'Which final consonant do you hear?',
       poolTier: DatasetTier.pri0,
       targetComponent: ComponentType.coda,
       choices: const ['p', 't', 'k'],
@@ -1278,24 +1339,24 @@ class Curriculum {
         hearAndCompareItems: [
           HearAndCompareItem(
             value: 'p',
-            label: '-p · Clipped lips',
-            hint: 'Lips press shut quickly (saap3)',
+            label: '-p · Unreleased lips',
+            hint: 'Lips press shut quickly',
             preferredSyllable: 'saap3',
             tone: 3,
             isCheckedTone: true,
           ),
           HearAndCompareItem(
             value: 't',
-            label: '-t · Clipped tongue',
-            hint: 'Tongue stops air cleanly (saat3)',
+            label: '-t · Unreleased tongue',
+            hint: 'Tongue stops air cleanly',
             preferredSyllable: 'saat3',
             tone: 3,
             isCheckedTone: true,
           ),
           HearAndCompareItem(
             value: 'k',
-            label: '-k · Clipped throat',
-            hint: 'Back tongue catches abruptly (saak3)',
+            label: '-k · Unreleased throat',
+            hint: 'Back tongue catches abruptly',
             preferredSyllable: 'saak3',
             tone: 3,
             isCheckedTone: true,
@@ -1307,19 +1368,19 @@ class Curriculum {
           lessonId: 'u6_l3_checked_stops',
           targetType: 'coda',
           targetValue: 'p',
-          displayLabel: 'Ending -p',
+          displayLabel: 'Coda -p',
         ),
         ContrastSkill(
           lessonId: 'u6_l3_checked_stops',
           targetType: 'coda',
           targetValue: 't',
-          displayLabel: 'Ending -t',
+          displayLabel: 'Coda -t',
         ),
         ContrastSkill(
           lessonId: 'u6_l3_checked_stops',
           targetType: 'coda',
           targetValue: 'k',
-          displayLabel: 'Ending -k',
+          displayLabel: 'Coda -k',
         ),
       ],
     ),
@@ -1327,8 +1388,11 @@ class Curriculum {
       id: 'u6_l4_syllabic_nasals',
       unitId: 'unit_6',
       numberLabel: '6.4',
-      title: 'Hummed Syllables (m, hm, ng, hng)',
-      cue: 'Four standalone words hum directly with no vowel (Start: None or h + Ending: m or ng).',
+      title: 'Syllabic Nasals',
+      introSummary:
+          'Hear four standalone nasal words that carry tone without any vowel: m, hm, ng, and hng.',
+      phoneticsNote:
+          'Syllabic nasals use a nasal consonant as the entire syllable peak with no vowel at all: lip-closed m (IPA [m], as in m4 "not") and back-throat ng (IPA [ŋ], as in ng5 "five"). Adding a brief breathy h opening produces hm (IPA [hm]) and hng (IPA [hŋ]).',
       poolTier: DatasetTier.pri0And1,
       choices: const ['m', 'hm', 'ng', 'hng'],
       format: ExerciseFormat.choiceCards,
@@ -1340,7 +1404,7 @@ class Curriculum {
         hearAndCompareItems: [
           HearAndCompareItem(
             value: 'm',
-            label: 'm · Lip hum',
+            label: 'm · Lip nasal',
             hint: 'Lips closed throughout',
             preferredSyllable: 'm4',
           ),
@@ -1352,8 +1416,8 @@ class Curriculum {
           ),
           HearAndCompareItem(
             value: 'ng',
-            label: 'ng · Back hum',
-            hint: 'Throat nasal hum alone',
+            label: 'ng · Back nasal',
+            hint: 'Throat nasal alone',
             preferredSyllable: 'ng4',
           ),
           HearAndCompareItem(
@@ -1369,25 +1433,25 @@ class Curriculum {
           lessonId: 'u6_l4_syllabic_nasals',
           targetType: 'syllable',
           targetValue: 'm',
-          displayLabel: 'Hummed m',
+          displayLabel: 'Syllabic nasal m',
         ),
         ContrastSkill(
           lessonId: 'u6_l4_syllabic_nasals',
           targetType: 'syllable',
           targetValue: 'hm',
-          displayLabel: 'Hummed hm',
+          displayLabel: 'Syllabic nasal hm',
         ),
         ContrastSkill(
           lessonId: 'u6_l4_syllabic_nasals',
           targetType: 'syllable',
           targetValue: 'ng',
-          displayLabel: 'Hummed ng',
+          displayLabel: 'Syllabic nasal ng',
         ),
         ContrastSkill(
           lessonId: 'u6_l4_syllabic_nasals',
           targetType: 'syllable',
           targetValue: 'hng',
-          displayLabel: 'Hummed hng',
+          displayLabel: 'Syllabic nasal hng',
         ),
       ],
     ),
@@ -1396,7 +1460,8 @@ class Curriculum {
       unitId: 'unit_6',
       numberLabel: 'R6',
       title: 'Units 1–6 Review',
-      cue: 'Full contrast review across all tones, starts, vowels, endings, and hums.',
+      introSummary:
+          'Review all six tones, every initial consonant, vowel contrasts, final codas, and syllabic nasals across the full course.',
       poolTier: DatasetTier.pri0And1,
       format: ExerciseFormat.choiceCards,
       coreCount: 24,
@@ -1404,20 +1469,23 @@ class Curriculum {
       cumulativeReviewUpToUnit: 6,
     ),
 
-    // ---------------- Unit 7: Multi-Slot Assembly to Mastery ----------------
+    // ---------------- Unit 7: Full Syllables ----------------
     LessonSpec(
       id: 'u7_l1_start_plus_tone',
       unitId: 'unit_7',
       numberLabel: '7.1',
-      title: 'Start + Tone Assembly',
-      cue: 'Vowel and Ending are filled in—pick the matching Start (leave blank for None) and Tone.',
+      title: 'Initial + Tone',
+      introSummary:
+          'Build syllables using the 3-step Initial consonant, Final, and Tone builder. The Final is filled in for you—select Initial consonant and Tone.',
+      phoneticsNote:
+          'Unit 7 uses the same 3-step model as Practice: Initial consonant → Final → Tone. All 57 Finals combine a vowel nucleus and optional coda into one Step 2 choice. In this lesson Step 2 is locked for you, so focus on picking the Initial (tap None—shown as ∅ in the slot preview—when there is no consonant) and Tone.',
+      trialPrompt: 'Build the initial consonant and tone.',
       poolTier: DatasetTier.pri0,
       format: ExerciseFormat.slotAssembly,
       coreCount: 24,
       poolPredicate: (e) => e.nucleus.isNotEmpty,
       slotMask: const SlotMask(
         lockedComponents: {ComponentType.nucleus, ComponentType.coda},
-        visibleComponents: {ComponentType.initial, ComponentType.tone},
         isGuided: true,
       ),
     ),
@@ -1425,19 +1493,16 @@ class Curriculum {
       id: 'u7_l2_vowel_ending_tone',
       unitId: 'unit_7',
       numberLabel: '7.2',
-      title: 'Vowel + Ending + Tone',
-      cue: 'Start is filled in—build Vowel, Ending (leave blank for None), and Tone.',
+      title: 'Final + Tone',
+      introSummary:
+          'The initial consonant (or ∅ for None) is filled in—choose the matching Final and Tone on the 3-step keyboard.',
+      trialPrompt: 'Build the final and tone.',
       poolTier: DatasetTier.pri0,
       format: ExerciseFormat.slotAssembly,
       coreCount: 24,
       poolPredicate: (e) => e.nucleus.isNotEmpty,
       slotMask: const SlotMask(
         lockedComponents: {ComponentType.initial},
-        visibleComponents: {
-          ComponentType.nucleus,
-          ComponentType.coda,
-          ComponentType.tone,
-        },
         isGuided: true,
       ),
     ),
@@ -1445,20 +1510,16 @@ class Curriculum {
       id: 'u7_l3_guided_42_keys',
       unitId: 'unit_7',
       numberLabel: '7.3',
-      title: 'Guided 4-Slot Transcription',
-      cue: 'Assemble all four parts with invalid combinations dimmed as a guide.',
+      title: 'Guided Full Syllable',
+      introSummary:
+          'Assemble all three parts (Initial consonant, Final, and Tone) by ear while impossible syllable combinations remain dimmed as a guide.',
+      trialPrompt: 'Build the full syllable (guided).',
       poolTier: DatasetTier.pri0,
       format: ExerciseFormat.slotAssembly,
       coreCount: 24,
       poolPredicate: (_) => true,
       slotMask: const SlotMask(
         lockedComponents: {},
-        visibleComponents: {
-          ComponentType.initial,
-          ComponentType.nucleus,
-          ComponentType.coda,
-          ComponentType.tone,
-        },
         isGuided: true,
       ),
     ),
@@ -1466,20 +1527,16 @@ class Curriculum {
       id: 'u7_l4_open_42_keys',
       unitId: 'unit_7',
       numberLabel: '7.4',
-      title: 'Unassisted 42-Key Mastery',
-      cue: 'Final mastery check: transcribe every syllable from scratch across all 42 keys.',
+      title: 'Full Syllable',
+      introSummary:
+          'Final mastery check: transcribe full syllables across Initial consonant, Final, and Tone with no guided dimming.',
+      trialPrompt: 'Build the full syllable.',
       poolTier: DatasetTier.pri0,
       format: ExerciseFormat.slotAssembly,
       coreCount: 28,
       poolPredicate: (_) => true,
       slotMask: const SlotMask(
         lockedComponents: {},
-        visibleComponents: {
-          ComponentType.initial,
-          ComponentType.nucleus,
-          ComponentType.coda,
-          ComponentType.tone,
-        },
         isGuided: false,
       ),
     ),
@@ -1677,13 +1734,13 @@ class Curriculum {
     String? subtitle;
     switch (spec.targetComponent) {
       case ComponentType.initial:
-        display = value.isEmpty ? 'None' : value;
+        display = value.isEmpty ? ComponentType.noneLabel : value;
         subtitle = attested?.syllable;
       case ComponentType.nucleus:
         display = value;
         subtitle = attested?.syllable;
       case ComponentType.coda:
-        display = value.isEmpty ? 'None' : '-$value';
+        display = value.isEmpty ? ComponentType.noneLabel : '-$value';
         subtitle = attested?.syllable;
       case ComponentType.tone:
       case null:

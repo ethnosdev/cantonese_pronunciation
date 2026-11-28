@@ -48,20 +48,56 @@ enum ConstraintMode {
   }
 }
 
+/// Active keyboard step in the 3-step syllable builder.
+enum PracticeStep {
+  initial(headerLabel: 'Initial consonant', shortLabel: 'Initial'),
+  syllableFinal(headerLabel: 'Final', shortLabel: 'Final'),
+  tone(headerLabel: 'Tone', shortLabel: 'Tone');
+
+  const PracticeStep({
+    required this.headerLabel,
+    required this.shortLabel,
+  });
+
+  final String headerLabel;
+  final String shortLabel;
+}
+
 /// The four phonological slots of a Jyutping syllable.
 enum ComponentType {
-  initial('Initial', 'Start'),
-  nucleus('Nucleus', 'Vowel'),
-  coda('Coda', 'Ending'),
-  tone('Tone', 'Tone');
+  initial(
+    shortLabel: 'Initial',
+    fullLabel: 'Initial consonant',
+    promptLabel: 'initial consonant',
+  ),
+  nucleus(
+    shortLabel: 'Vowel',
+    fullLabel: 'Vowel',
+    promptLabel: 'vowel',
+  ),
+  coda(
+    shortLabel: 'Coda',
+    fullLabel: 'Coda',
+    promptLabel: 'coda',
+  ),
+  tone(
+    shortLabel: 'Tone',
+    fullLabel: 'Tone',
+    promptLabel: 'tone',
+  );
 
-  const ComponentType(this.label, this.beginnerLabel);
+  const ComponentType({
+    required this.shortLabel,
+    required this.fullLabel,
+    required this.promptLabel,
+  });
 
-  final String label;
-  final String beginnerLabel;
+  final String shortLabel;
+  final String fullLabel;
+  final String promptLabel;
 
-  String displayLabel({bool useBeginnerLabels = false}) =>
-      useBeginnerLabels ? beginnerLabel : label;
+  static const String noneLabel = 'None';
+  static const String emptySymbol = '∅';
 
   static ComponentType fromName(String name) {
     return ComponentType.values.firstWhere((e) => e.name == name);

@@ -270,7 +270,7 @@ class LessonSession {
       userPickedSame: pickedSame,
       differentProperty: trial.differentProperty,
       promptText: trial.promptText,
-      showToneContours: trial.differentProperty == DifferentProperty.tone,
+      showToneContours: trial.differentProperty == ComponentType.tone,
       isWarmup: true,
     );
     _currentFeedback = feedback;
@@ -321,7 +321,7 @@ class LessonSession {
       isCorrect: isCorrect,
       target: trial.target,
       promptText: trial.promptText,
-      showToneContours: trial.differentProperty == DifferentProperty.tone ||
+      showToneContours: trial.differentProperty == ComponentType.tone ||
           spec?.targetComponent == ComponentType.tone,
       selectedChoice: choice,
       expectedChoice: expectedOption,
@@ -535,9 +535,9 @@ class LessonSession {
     if (warmup == null || warmup.sameDifferentCount <= 0 || pool.length < 2) {
       return const [];
     }
-    final prop = warmup.differentProperty ?? DifferentProperty.tone;
+    final prop = warmup.differentProperty ?? ComponentType.tone;
     final prompt =
-        warmup.sameDifferentPrompt ?? 'Same ${prop.beginnerLabel}?';
+        warmup.sameDifferentPrompt ?? 'Same ${prop.promptLabel}?';
     final flags = <bool>[
       for (var i = 0; i < warmup.sameDifferentCount; i++) i.isEven,
     ]..shuffle(rng);
@@ -564,7 +564,7 @@ class LessonSession {
           deckSource: DeckSource.core,
           sourceLessonId: spec.id,
           statsComponents: const [],
-          showContoursOnButtons: prop == DifferentProperty.tone,
+          showContoursOnButtons: prop == ComponentType.tone,
         ),
       );
     }
@@ -573,7 +573,7 @@ class LessonSession {
 
   static (SyllableEntry, SyllableEntry)? _pickCrossCarrierPair({
     required List<SyllableEntry> pool,
-    required DifferentProperty prop,
+    required ComponentType prop,
     required bool isSame,
     required Random rng,
   }) {
@@ -586,7 +586,7 @@ class LessonSession {
           // Cross-carrier: identical target feature on a different base/tone.
           return sameTarget && first.base != second.base ||
               (sameTarget &&
-                  prop != DifferentProperty.tone &&
+                  prop != ComponentType.tone &&
                   first.syllable != second.syllable);
         }
         // Different: differ ONLY on the target dimension when possible.
@@ -617,15 +617,15 @@ class LessonSession {
     return null;
   }
 
-  static String _propVal(SyllableEntry e, DifferentProperty prop) {
+  static String _propVal(SyllableEntry e, ComponentType prop) {
     switch (prop) {
-      case DifferentProperty.tone:
+      case ComponentType.tone:
         return e.tone.toString();
-      case DifferentProperty.initial:
+      case ComponentType.initial:
         return e.initial;
-      case DifferentProperty.nucleus:
+      case ComponentType.nucleus:
         return e.nucleus;
-      case DifferentProperty.coda:
+      case ComponentType.coda:
         return e.coda;
     }
   }
@@ -633,18 +633,18 @@ class LessonSession {
   static bool _sameCarrier(
     SyllableEntry a,
     SyllableEntry b,
-    DifferentProperty prop,
+    ComponentType prop,
   ) {
     switch (prop) {
-      case DifferentProperty.tone:
+      case ComponentType.tone:
         return a.initial == b.initial &&
             a.nucleus == b.nucleus &&
             a.coda == b.coda;
-      case DifferentProperty.initial:
+      case ComponentType.initial:
         return a.nucleus == b.nucleus && a.coda == b.coda && a.tone == b.tone;
-      case DifferentProperty.nucleus:
+      case ComponentType.nucleus:
         return a.initial == b.initial && a.coda == b.coda && a.tone == b.tone;
-      case DifferentProperty.coda:
+      case ComponentType.coda:
         return a.initial == b.initial &&
             a.nucleus == b.nucleus &&
             a.tone == b.tone;
@@ -759,23 +759,18 @@ class LessonSession {
   static String _promptForLesson(LessonSpec spec) {
     switch (spec.format) {
       case ExerciseFormat.choiceCards:
-        switch (spec.targetComponent) {
-          case ComponentType.tone:
-            return 'Which Tone do you hear?';
-          case ComponentType.initial:
-            return 'Which Start sound do you hear?';
-          case ComponentType.nucleus:
-            return 'Which Vowel do you hear?';
-          case ComponentType.coda:
-            return 'Which Ending do you hear?';
-          case null:
-            return 'Which syllable do you hear?';
+        final override = spec.trialPrompt;
+        if (override != null && override.isNotEmpty) {
+          return override;
         }
+        final comp = spec.targetComponent;
+        if (comp == null) return 'Which syllable do you hear?';
+        return 'Which ${comp.promptLabel} do you hear?';
       case ExerciseFormat.slotAssembly:
-        return spec.cue;
+        return spec.trialPrompt!;
       case ExerciseFormat.hearAndCompare:
       case ExerciseFormat.sameDifferent:
-        return spec.cue;
+        return spec.introSummary;
     }
   }
 

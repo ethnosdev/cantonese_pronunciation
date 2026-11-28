@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:cantonese_pronunciation/core/curriculum.dart';
 import 'package:cantonese_pronunciation/core/lesson_session.dart';
+import 'package:cantonese_pronunciation/core/lesson_spec.dart';
 import 'package:cantonese_pronunciation/core/syllable_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -130,6 +131,159 @@ void main() {
         'u6_l4_syllabic_nasals:syllable:ng',
         'u6_l4_syllabic_nasals:syllable:hng',
       ]),
+    );
+  });
+
+  test('pins immutable keys and enforces Phase 1 and Phase 2 terminology and no-IPA/no-Chao rules', () {
+    expect(
+      Curriculum.units.map((u) => u.id),
+      equals([
+        'unit_1',
+        'unit_2',
+        'unit_3',
+        'unit_4',
+        'unit_5',
+        'unit_6',
+        'unit_7',
+      ]),
+    );
+    expect(ComponentType.values.map((c) => c.name), [
+      'initial',
+      'nucleus',
+      'coda',
+      'tone',
+    ]);
+    expect(FocusFilter.fromId('initial:zeroNgH').id, 'initial:zeroNgH');
+    expect(FocusFilter.fromId('initial:zeroNgH').label, 'Initials: None / ng / h');
+
+    final ipaRe = RegExp(r'[\u014B\u0153\u0250-\u02FF\u0300-\u036F]|IPA \[');
+    final chaoRe = RegExp(r'\b(55|35|33|21|23|22)\b');
+    final retiredRe = RegExp(
+      r'(Flat|Soft|Air-[Pp]uff|Open start|Hums|`)',
+      caseSensitive: true,
+    );
+    final toneBarsOrCombiningRe = RegExp(r'[\u02E5-\u02E9\u0300-\u036F]');
+    final duplicateParenRe = RegExp(r'\([a-z]+[1-6][^)]*\).*\([a-z]+[1-6]');
+
+    for (final toneName in Curriculum.tonePlainNames.values) {
+      expect(ipaRe.hasMatch(toneName), isFalse, reason: toneName);
+      expect(chaoRe.hasMatch(toneName), isFalse, reason: toneName);
+      expect(retiredRe.hasMatch(toneName), isFalse, reason: toneName);
+    }
+
+    for (final unit in Curriculum.units) {
+      expect(ipaRe.hasMatch(unit.title), isFalse, reason: unit.id);
+      expect(chaoRe.hasMatch(unit.title), isFalse, reason: unit.id);
+      expect(retiredRe.hasMatch(unit.title), isFalse, reason: unit.id);
+    }
+
+    for (final lesson in Curriculum.lessons) {
+      expect(ipaRe.hasMatch(lesson.title), isFalse, reason: lesson.id);
+      expect(chaoRe.hasMatch(lesson.title), isFalse, reason: lesson.id);
+      expect(retiredRe.hasMatch(lesson.title), isFalse, reason: lesson.id);
+
+      expect(lesson.introSummary.trim(), isNotEmpty, reason: lesson.id);
+      expect(
+        ipaRe.hasMatch(lesson.introSummary),
+        isFalse,
+        reason: '${lesson.id} introSummary',
+      );
+      expect(
+        chaoRe.hasMatch(lesson.introSummary),
+        isFalse,
+        reason: '${lesson.id} introSummary',
+      );
+      expect(
+        retiredRe.hasMatch(lesson.introSummary),
+        isFalse,
+        reason: '${lesson.id} introSummary',
+      );
+
+      if (lesson.format == ExerciseFormat.slotAssembly) {
+        expect(
+          lesson.trialPrompt,
+          isNotNull,
+          reason: '${lesson.id} requires trialPrompt',
+        );
+        expect(
+          lesson.trialPrompt!.trim(),
+          isNotEmpty,
+          reason: '${lesson.id} trialPrompt non-empty',
+        );
+      }
+
+      if (lesson.trialPrompt != null) {
+        expect(
+          ipaRe.hasMatch(lesson.trialPrompt!),
+          isFalse,
+          reason: '${lesson.id} trialPrompt',
+        );
+        expect(
+          chaoRe.hasMatch(lesson.trialPrompt!),
+          isFalse,
+          reason: '${lesson.id} trialPrompt',
+        );
+        expect(
+          retiredRe.hasMatch(lesson.trialPrompt!),
+          isFalse,
+          reason: '${lesson.id} trialPrompt',
+        );
+      }
+
+      if (lesson.phoneticsNote != null) {
+        expect(
+          toneBarsOrCombiningRe.hasMatch(lesson.phoneticsNote!),
+          isFalse,
+          reason: '${lesson.id} phoneticsNote',
+        );
+      }
+
+      final warmup = lesson.warmup;
+      if (warmup != null) {
+        if (warmup.sameDifferentPrompt != null) {
+          expect(
+            ipaRe.hasMatch(warmup.sameDifferentPrompt!),
+            isFalse,
+            reason: lesson.id,
+          );
+          expect(
+            chaoRe.hasMatch(warmup.sameDifferentPrompt!),
+            isFalse,
+            reason: lesson.id,
+          );
+        }
+        for (final item in warmup.hearAndCompareItems) {
+          expect(ipaRe.hasMatch(item.label), isFalse, reason: item.label);
+          expect(chaoRe.hasMatch(item.label), isFalse, reason: item.label);
+          expect(retiredRe.hasMatch(item.label), isFalse, reason: item.label);
+          expect(ipaRe.hasMatch(item.hint), isFalse, reason: item.hint);
+          expect(chaoRe.hasMatch(item.hint), isFalse, reason: item.hint);
+          expect(retiredRe.hasMatch(item.hint), isFalse, reason: item.hint);
+          expect(
+            duplicateParenRe.hasMatch(item.hint),
+            isFalse,
+            reason: item.hint,
+          );
+        }
+      }
+      for (final skill in lesson.seedSkills) {
+        expect(ipaRe.hasMatch(skill.displayLabel), isFalse, reason: skill.skillId);
+        expect(chaoRe.hasMatch(skill.displayLabel), isFalse, reason: skill.skillId);
+        expect(retiredRe.hasMatch(skill.displayLabel), isFalse, reason: skill.skillId);
+      }
+    }
+
+    expect(
+      Curriculum.lessonById('u5_l2_glide_endings')!.trialPrompt,
+      'Which vowel glide do you hear?',
+    );
+    expect(
+      Curriculum.lessonById('u5_l3_nasal_endings')!.trialPrompt,
+      'Which final consonant do you hear?',
+    );
+    expect(
+      Curriculum.lessonById('u6_l3_checked_stops')!.trialPrompt,
+      'Which final consonant do you hear?',
     );
   });
 
